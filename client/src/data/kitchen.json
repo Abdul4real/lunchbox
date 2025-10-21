@@ -6,13 +6,13 @@
     { "title": "Gluten-Free", "image": "/images/Gluten.jpg", "tag": "Free" }
   ],
   "grocery": [
-    { "title": "Chicken Breast", "qty": "1 kg" },
-    { "title": "Spinach", "qty": "2 bags" },
-    { "title": "Basmati Rice", "qty": "2 kg" }
+    { "title": "Aaliyah's Kitchen", "qty": "6.0" },
+    { "title": "Doreen's Kitchen", "qty": "5.9" },
+    { "title": "Joy's Kitchen", "qty": "5.8" }
   ],
   "planner": [
-    { "day": "Mon", "recipe": "Jollof Rice" },
-    { "day": "Tue", "recipe": "Grilled Salmon" },
-    { "day": "Wed", "recipe": "Vegan Buddha Bowl" }
+    { "day": "Yak", "recipe": "Way to go, app is way too easy" },
+    { "day": "Sasha", "recipe": "App left me salivating" },
+    { "day": "Ashely", "recipe": "My go too app" }
   ]
 }
