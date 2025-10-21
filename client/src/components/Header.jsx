@@ -1,11 +1,13 @@
 import { useTheme } from "../contexts/ThemeContext";
 import { useNotifications } from "../contexts/NotificationsContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import React from "react";
 export default function Header() {
   const { theme, toggle } = useTheme();
   const { items, unread, markAllRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <header className="pt-6 pb-2 sticky top-0 z-20 bg-white/80 dark:bg-neutral-950/80 backdrop-blur border-b border-gray-100 dark:border-neutral-800">
@@ -21,7 +23,7 @@ export default function Header() {
           <span className="text-2xl font-extrabold tracking-tight">LunchBox</span>
         </div>
 
-        {/* search */}
+        {/* search
         <div className="flex-1 max-w-xl mx-6 hidden md:flex">
           <label className="w-full relative">
             <input
@@ -31,7 +33,8 @@ export default function Header() {
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
           </label>
-        </div>
+        </div> */}
+        
 
         {/* actions */}
         <div className="relative flex items-center gap-2">
@@ -81,10 +84,18 @@ export default function Header() {
           >
             {theme === "light" ? "🌙" : "☀️"}
           </button>
-
-          {/* Profile */}
-          <button className="p-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
-            👤
+           {/* Sign  */}
+          <button
+            onClick={() => navigate("/signin")}
+            className="p-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => navigate("/register")}
+            className="p-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+          >
+            Register
           </button>
         </div>
       </div>
