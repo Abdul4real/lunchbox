@@ -1,7 +1,7 @@
 import React from "react";
 export default function AIMealAssistant() {
   return (
-    <aside className="h-fit sticky top-4 rounded-2xl border border-gray-200 bg-white p-4">
+    <aside className="fixed sticky top-4 rounded-2xl border border-gray-200 bg-white p-4">
       <h2 className="text-xl font-bold">AI Meal Assistant</h2>
 
       <div className="mt-3 rounded-xl bg-gray-50 p-4">

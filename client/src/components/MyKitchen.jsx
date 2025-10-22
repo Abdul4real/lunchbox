@@ -29,7 +29,7 @@ function MealPlanner() {
 }
 
 export default function MyKitchen() {
-  const TABS = ["Saved Recipes", "Grocery List", "Meal Planner"];
+  const TABS = ["Today's Trending", "Best Seller", "Reviews"];
   const [tab, setTab] = useState(TABS[0]);
 
   return (
@@ -52,15 +52,15 @@ export default function MyKitchen() {
         ))}
       </div>
 
-      {tab === "Saved Recipes" && (
+      {tab === "Today's Trending" && (
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
           {data.saved.map((k, i) => <KitchenCard key={i} {...k} />)}
         </div>
       )}
 
-      {tab === "Grocery List" && <GroceryList />}
+      {tab === "Best Seller" && <GroceryList />}
 
-      {tab === "Meal Planner" && <MealPlanner />}
+      {tab === "Reviews" && <MealPlanner />}
     </section>
   );
 }
