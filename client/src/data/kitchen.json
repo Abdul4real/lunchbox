@@ -1,0 +1,18 @@
+{
+  "saved": [
+    { "title": "Quick Recipes", "image": "/images/quickre.jpg", "tag": "Fast" },
+    { "title": "Healthy Options", "image": "/images/lemon.jpg", "tag": "Light" },
+    { "title": "Comfort Food", "image": "/images/person1.jpg", "tag": "Cozy" },
+    { "title": "Gluten-Free", "image": "/images/Gluten.jpg", "tag": "Free" }
+  ],
+  "grocery": [
+    { "title": "Chicken Breast", "qty": "1 kg" },
+    { "title": "Spinach", "qty": "2 bags" },
+    { "title": "Basmati Rice", "qty": "2 kg" }
+  ],
+  "planner": [
+    { "day": "Mon", "recipe": "Jollof Rice" },
+    { "day": "Tue", "recipe": "Grilled Salmon" },
+    { "day": "Wed", "recipe": "Vegan Buddha Bowl" }
+  ]
+}

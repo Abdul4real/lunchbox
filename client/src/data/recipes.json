@@ -1,0 +1,8 @@
+[
+  { "title": "Jollof Rice", "image": "/images/jollof.jpg", "meta": "⭐ 4.8 · ⏱ 25 min" },
+  { "title": "Pasta Alfredo", "image": "/images/alfredo.jpg", "meta": "⭐ 4.7 · ⏱ 20 min" },
+  { "title": "Chicken Stir Fry", "image": "/images/stirfry.jpg", "meta": "⭐ 4.6 · ⏱ 18 min" },
+  { "title": "Shrimp Tacos", "image": "/images/tacos.jpg", "meta": "⭐ 4.9 · ⏱ 15 min" },
+  { "title": "Vegan Buddha Bowl", "image": "/images/buddha.jpg", "meta": "⭐ 4.8 · ⏱ 22 min" },
+  { "title": "Grilled Salmon", "image": "/images/salmon.jpg", "meta": "⭐ 4.7 · ⏱ 17 min" }
+]
