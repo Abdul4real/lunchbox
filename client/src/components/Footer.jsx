@@ -1,11 +1,10 @@
 import React from "react";
-import { Link } from "react-router-dom"; // ✅ Import Link for navigation
-
+import { Link } from "react-router-dom";
 export default function Footer() {
   return (
     <footer className="mt-14 pb-12">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-gray-200 dark:border-neutral-800 pt-8">
-        
+
         {/* Company Section */}
         <div>
           <h4 className="font-semibold">Company</h4>
@@ -33,9 +32,9 @@ export default function Footer() {
           <h4 className="font-semibold">Support</h4>
           <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-neutral-400">
             <li>
-              <a href="#" className="hover:underline">
+              <Link to="/contact" className="hover:underline">
                 Contact
-              </a>
+              </Link>
             </li>
             <li>
               <a href="#" className="hover:underline">
