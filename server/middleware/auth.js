@@ -1,4 +1,4 @@
-
+// server/middleware/auth.js
 import jwt from "jsonwebtoken";
 import { tokenBlacklist } from "../utils/tokenBlacklist.js";
 
@@ -13,9 +13,15 @@ export function requireAuth(req, res, next) {
       return res.status(401).json({ message: "Token revoked" });
     }
     req.userId = payload.id;
+    req.role = payload.role || "user";
     req.jti = payload.jti;
     next();
   } catch {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+}
+
+export function requireAdmin(req, res, next) {
+  if (req.role !== "admin") return res.status(403).json({ message: "Admin only" });
+  next();
 }

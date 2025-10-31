@@ -1,13 +1,13 @@
-
+// server/controllers/authController.js
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
 import { tokenBlacklist } from "../utils/tokenBlacklist.js";
 
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, role = "user") =>
+  jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: "1d",
-    jwtid: crypto.randomUUID(), // jti for revocation
+    jwtid: crypto.randomUUID(),
   });
 
 // POST /api/auth/signup
@@ -20,16 +20,16 @@ export const registerUser = async (req, res) => {
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
-    const user = await User.create({ name, email, password });
-    const token = generateToken(user._id);
+    const user = await User.create({ name, email, password, role: "user" });
+    const token = generateToken(user._id, "user");
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "User registered successfully",
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
       token,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -42,18 +42,19 @@ export const loginUser = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isSuspended) return res.status(403).json({ message: "Account suspended" });
 
     const ok = await user.matchPassword(password);
     if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = generateToken(user._id);
-    return res.json({
+    const token = generateToken(user._id, user.role);
+    res.json({
       message: "Login successful",
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
       token,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -61,15 +62,13 @@ export const loginUser = async (req, res) => {
 export const logoutUser = (req, res) => {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-
-  if (!token) return res.json({ message: "User logged out successfully" });
+  if (!token) return res.json({ message: "User logged out" });
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     if (payload.jti) tokenBlacklist.add(payload.jti);
-    return res.json({ message: "User logged out successfully" });
   } catch {
-    // even if token is bad/expired, treat as logged out
-    return res.json({ message: "User logged out successfully" });
+    // ignore
   }
+  return res.json({ message: "User logged out" });
 };
