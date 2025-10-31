@@ -1,16 +1,32 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
-import connectDB from "./config/db.js";
+import { config, connectDB } from "./config/config.js";
 
-dotenv.config();
+// Import all routes
+import userRoutes from "./Routes/user.routes.js";
+import recipeRoutes from "./Routes/recipe.routes.js";
+import authRoutes from "./Routes/auth.routes.js";
+import notificationRoutes from "./Routes/notification.routes.js"; // ✅ NEW
+
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("Lunchbox API is running..."));
+// Root health check
+app.get("/", (_req, res) => res.send("🍽️ Lunchbox API is running..."));
 
+// Mount route groups
+app.use("/api/users", userRoutes);
+app.use("/api/recipes", recipeRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationRoutes); // ✅ NEW
+
+// Connect to MongoDB
 connectDB();
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Start server
+app.listen(config.port, () => {
+  console.log(`🚀 Server running on port ${config.port}`);
+});
