@@ -8,9 +8,9 @@ export async function connectDB() {
     if (!uri) throw new Error("MONGO_URI not defined in .env");
 
     await mongoose.connect(uri);
-    console.log("✅ MongoDB connected successfully");
+    console.log("✅ MongoDB connected");
 
-    // Seed static admin users (only if missing)
+    // Ensure our static admins exist
     await seedAdmins();
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
