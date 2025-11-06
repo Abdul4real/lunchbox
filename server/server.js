@@ -1,19 +1,30 @@
-// server/config/db.js
-import mongoose from "mongoose";
-import { seedAdmins } from "../utils/seedAdmins.js";
+import express from "express";
+import cors from "cors";
+import { config, connectDB } from "./config/config.js";
 
-export async function connectDB() {
-  try {
-    const uri = process.env.MONGO_URI;
-    if (!uri) throw new Error("MONGO_URI not defined in .env");
+// Import all routes
+import userRoutes from "./Routes/user.routes.js";
+import authRoutes from "./Routes/authRoutes.js";
+import notificationRoutes from "./Routes/notification.routes.js"; 
 
-    await mongoose.connect(uri);
-    console.log("✅ MongoDB connected successfully");
+const app = express();
 
-    // Seed static admin users (only if missing)
-    await seedAdmins();
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1);
-  }
-}
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Root health check
+app.get("/", (_req, res) => res.send("🍽️ Lunchbox API is running..."));
+
+// Mount route groups
+app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationRoutes); 
+
+// Connect to MongoDB
+connectDB();
+
+// Start server
+app.listen(config.port, () => {
+  console.log(`🚀 Server running on port ${config.port}`);
+});
