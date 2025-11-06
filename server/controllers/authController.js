@@ -1,7 +1,7 @@
 // server/controllers/authController.js
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import User from "../models/User.js";
+import User from "../models/user.model.js";
 import { tokenBlacklist } from "../utils/tokenBlacklist.js";
 
 const generateToken = (id, role = "user") =>
