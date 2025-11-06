@@ -1,5 +1,0 @@
-[
-  { "id": 101, "title": "Jollof Rice", "time": "25 min", "author": "Lila Owens", "status": "pending", "image": "/images/jollof.jpg" },
-  { "id": 102, "title": "Pasta Alfredo", "time": "20 min", "author": "Olivia Reynolds", "status": "approved", "image": "/images/alfredo.jpg" },
-  { "id": 103, "title": "Chicken Stir Fry", "time": "18 min", "author": "Noah Foster", "status": "rejected", "image": "/images/stirfry.jpg" }
-]
