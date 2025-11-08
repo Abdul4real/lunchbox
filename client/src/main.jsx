@@ -20,7 +20,7 @@ import UserRoute from "./routes/UserRoute.jsx";
 import UserLayout from "./components/user/UserLayout.jsx";
 import UserHome from "./pages/app/UserHome.jsx";
 import AddRecipe from "./pages/app/AddRecipe.jsx";
-//import RecipeDetails from "./pages/app/RecipeDetails.jsx";
+import RecipeDetails from "./pages/app/RecipeDetails.jsx";
 import EditRecipe from "./pages/app/EditRecipe.jsx";
 //import SearchRecipes from "./pages/app/SearchRecipes.jsx";
 //import Profile from "./pages/app/Profile.jsx";
@@ -52,6 +52,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/app" element={<UserLayout />}>
             <Route index element={<UserHome />} />
             <Route path="add" element={<AddRecipe />} />
+            <Route path="recipe/:id" element={<RecipeDetails />} /> 
             <Route path="recipe/:id/edit" element={<EditRecipe />} />
           </Route>
         </Route>
