@@ -17,7 +17,7 @@ const publicUser = (u) => {
 const isAdmin = (req) => req.role === "admin";
 
 /* =============================== USERS =============================== */
-// Create
+// Create (admin utility; your public signup happens in authController)
 const create = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -73,9 +73,7 @@ const userByID = async (req, res, next, id) => {
 };
 
 // Read one (user)
-const read = (req, res) => {
-  return res.json(publicUser(req.profile));
-};
+const read = (req, res) => res.json(publicUser(req.profile));
 
 // Update user
 const update = async (req, res) => {
@@ -163,10 +161,15 @@ const updatePassword = async (req, res) => {
 };
 
 /* ============================== RECIPES =============================== */
-
 /** CREATE (multipart/form-data; image required) - any authenticated user */
 const createRecipe = async (req, res) => {
-  const form = formidable({ keepExtensions: true, multiples: false });
+  // Limit size a bit and keep single file
+  const form = formidable({
+    keepExtensions: true,
+    multiples: false,
+    allowEmptyFiles: false,
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ message: "Image upload failed" });
@@ -177,7 +180,7 @@ const createRecipe = async (req, res) => {
     });
 
     try {
-      // current user must exist
+      // ensure authenticated user exists
       const currentUser = await User.findById(req.userId).select("name email role");
       if (!currentUser) return res.status(401).json({ message: "Unauthorized" });
 
@@ -190,7 +193,7 @@ const createRecipe = async (req, res) => {
       const filePath = img?.filepath || img?.path;
       if (!filePath) return res.status(400).json({ message: "image is required" });
 
-      // parse structured fields if sent as JSON
+      // parse structured fields if sent as JSON strings
       const tryParse = (val) => {
         try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
       };
@@ -237,6 +240,7 @@ const createRecipe = async (req, res) => {
         creator: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
       });
 
+      // attach image (required)
       try {
         recipe.image.data = fs.readFileSync(filePath);
         recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
@@ -253,24 +257,34 @@ const createRecipe = async (req, res) => {
   });
 };
 
-/** READ ALL (encode image buffers safely) */
+/** READ ALL (return base64 image when present) */
 const getAllRecipes = async (_req, res) => {
   try {
-    const recipes = await Recipe.find().sort({ createdAt: -1 });
+    const docs = await Recipe.find().sort({ createdAt: -1 }).lean();
+    const out = (docs || []).map((r) => {
+      const obj = {
+        _id: String(r._id),
+        title: r.title,
+        description: r.description || "",
+        category: r.category || "",
+        metadata: r.metadata || {},
+        ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+        instructions: Array.isArray(r.instructions) ? r.instructions : [],
+        creator: r.creator || "",
+        reviews: Array.isArray(r.reviews) ? r.reviews : [],
+        rating: typeof r.rating === "number" ? r.rating : 0,
+        bookmarks: typeof r.bookmarks === "number" ? r.bookmarks : 0,
+        bookmarked: !!r.bookmarked,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      };
 
-    const out = recipes.map((r) => {
-      const obj = r.toObject ? r.toObject() : r;
-      if (obj?.image?.data) {
-        try {
-          obj.image = {
-            contentType: obj.image.contentType || "image/jpeg",
-            data: Buffer.isBuffer(obj.image.data)
-              ? obj.image.data.toString("base64")
-              : obj.image.data,
-          };
-        } catch {
-          obj.image = undefined; // if conversion fails, strip image to avoid 400s
-        }
+      const data = r?.image?.data;
+      if (data && Buffer.isBuffer(data)) {
+        obj.image = {
+          contentType: r.image.contentType || "image/jpeg",
+          data: data.toString("base64"),
+        };
       }
       return obj;
     });
@@ -278,7 +292,7 @@ const getAllRecipes = async (_req, res) => {
     return res.json(out);
   } catch (e) {
     console.error("getAllRecipes error:", e);
-    return res.status(500).json({ message: e?.message || "Failed to load recipes" });
+    return res.status(400).json({ error: "Failed to load recipes" });
   }
 };
 
@@ -296,9 +310,75 @@ const recipeByID = async (req, res, next, id) => {
 
 const readRecipe = (req, res) => res.json(req.recipe);
 
-/** UPDATE (multipart or JSON; image optional) */
+/** UPDATE (multipart OR JSON; image optional) */
 const updateRecipe = async (req, res) => {
-  const form = formidable({ keepExtensions: true, multiples: false });
+  // Accept both application/json and multipart/form-data
+  const contentType = req.headers["content-type"] || "";
+  const isMultipart = contentType.startsWith("multipart/form-data");
+
+  if (!isMultipart) {
+    // JSON body update
+    try {
+      const recipe = req.recipe;
+
+      const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
+      if (!isOwner && !isAdmin(req)) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const updates = { ...req.body };
+
+      // normalize known structured fields if provided
+      const toArrIng = (v) =>
+        Array.isArray(v)
+          ? v
+              .map((it) =>
+                typeof it === "string"
+                  ? { name: it }
+                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+              )
+              .filter((i) => i.name?.trim())
+          : undefined;
+
+      const toArrSteps = (v) =>
+        Array.isArray(v)
+          ? v.map((step, idx) =>
+              typeof step === "string"
+                ? { stepNumber: idx + 1, description: step }
+                : {
+                    stepNumber: step?.stepNumber ?? idx + 1,
+                    description: step?.description ?? "",
+                    duration: step?.duration,
+                  }
+            )
+          : undefined;
+
+      if ("ingredients" in updates) updates.ingredients = toArrIng(updates.ingredients) ?? [];
+      if ("instructions" in updates) updates.instructions = toArrSteps(updates.instructions) ?? [];
+      if ("category" in updates && typeof updates.category === "string") {
+        updates.category = updates.category.trim() || undefined;
+      }
+      if ("title" in updates && typeof updates.title === "string") {
+        updates.title = updates.title.trim();
+      }
+
+      Object.assign(recipe, updates);
+      recipe.updatedAt = Date.now();
+      const updated = await recipe.save();
+      return res.json(updated);
+    } catch (e) {
+      console.error("updateRecipe (JSON) error:", e);
+      return res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    }
+  }
+
+  // Multipart branch (may include a new image)
+  const form = formidable({
+    keepExtensions: true,
+    multiples: false,
+    allowEmptyFiles: false,
+    maxFileSize: 10 * 1024 * 1024,
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ error: "Image upload failed" });
@@ -306,18 +386,15 @@ const updateRecipe = async (req, res) => {
     try {
       const recipe = req.recipe;
 
-      // only author or admin
       const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
       if (!isOwner && !isAdmin(req)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // flatten fields
       Object.keys(fields).forEach(
         (k) => (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k])
       );
 
-      // parse structured fields when sent as JSON strings
       const tryParse = (val) => {
         try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
       };
@@ -357,7 +434,7 @@ const updateRecipe = async (req, res) => {
         updates.title = updates.title.trim();
       }
 
-      // optional new image (robust)
+      // optional new image
       const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
       const filePath = img?.filepath || img?.path;
       if (filePath) {
@@ -375,7 +452,7 @@ const updateRecipe = async (req, res) => {
       const updated = await recipe.save();
       res.json(updated);
     } catch (e) {
-      console.error("updateRecipe error:", e);
+      console.error("updateRecipe (multipart) error:", e);
       res.status(400).json({ error: errorHandler.getErrorMessage(e) });
     }
   });
@@ -526,7 +603,6 @@ const getRecipesByCreator = async (req, res) => {
 };
 
 /* =============================== REVIEWS ============================== */
-// Add review
 const addReview = async (req, res) => {
   try {
     const { recipeId } = req.params;
@@ -549,7 +625,6 @@ const addReview = async (req, res) => {
   }
 };
 
-// List reviews for a recipe
 const listReviewsByRecipe = async (req, res) => {
   try {
     const { recipeId } = req.params;
@@ -560,7 +635,6 @@ const listReviewsByRecipe = async (req, res) => {
   }
 };
 
-// Update own review
 const updateReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
@@ -579,7 +653,6 @@ const updateReview = async (req, res) => {
   }
 };
 
-// Delete own review or admin
 const deleteReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
