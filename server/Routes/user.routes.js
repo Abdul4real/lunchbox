@@ -43,7 +43,7 @@ router.route("/:userId/password").put(requireAuth, isSelfOrAdmin, userCtrl.updat
 router
   .route("/recipes")
   .get(userCtrl.getAllRecipes)
-  .post(requireAuth, requireAdmin, userCtrl.createRecipe);
+  .post(requireAuth, userCtrl.createRecipe);
 
 // Filters
 router.get("/recipes/filter/ingredient/:ingredient", userCtrl.getRecipesByFilter);
