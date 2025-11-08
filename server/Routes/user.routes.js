@@ -1,4 +1,3 @@
-// server/routes/user.routes.js
 import express from "express";
 import userCtrl from "../controllers/user.controller.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
