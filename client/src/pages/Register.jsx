@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import InputField from "../components/InputField";
 import AuthLayout from "../components/AuthLayout";
 
@@ -12,17 +11,46 @@ export default function Register() {
     confirm: "",
   });
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = e => {
+  const navigate = useNavigate();
+
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm) {
       alert("Passwords do not match!");
       return;
     }
-    console.log("Register:", form);
-  };
 
-  const navigate = useNavigate(); //
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Registration failed");
+        return;
+      }
+
+      alert("Registration successful!");
+      console.log("✅ Registered user:", data);
+      navigate("/signin");
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("Something went wrong, please try again.");
+    }
+  };
 
   return (
     <AuthLayout
