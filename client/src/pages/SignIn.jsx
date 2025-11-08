@@ -1,10 +1,9 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext"; // from your context
-// expects AuthContext to expose: loginUser({ token, user })
+import { useAuth } from "../contexts/AuthContext";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// Use Vite env or default to backend port 5000
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function SignIn() {
   const nav = useNavigate();
@@ -21,7 +20,8 @@ export default function SignIn() {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      // ✅ correct endpoint
+      const res = await fetch(`${API}/api/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -29,10 +29,20 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Sign in failed");
 
-      // persist token if "remember me" checked
-      if (remember) localStorage.setItem("lb_token", data.token);
-      loginUser({ token: data.token, user: data.user }); // update context
-      nav("/app"); // go to user dashboard
+      // ✅ persist token (remember -> localStorage; else sessionStorage)
+      if (remember) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      } else {
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      // ✅ update your auth context
+      loginUser({ token: data.token, user: data.user });
+
+      // Go wherever you want after login
+      nav("/app"); // or "/"
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -43,18 +53,17 @@ export default function SignIn() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
       <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm">
-        {/* Back */}
         <button
           onClick={() => nav("/")}
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-neutral-400 mb-3 hover:text-gray-900 dark:hover:text-white"
         >
+          {/* back icon */}
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Home
         </button>
 
-        {/* Brand */}
         <div className="flex items-center justify-center mb-5">
           <div className="h-10 w-10 rounded-lg grid place-items-center" style={{ background: "var(--lb-yellow)" }}>
             <span className="font-bold">L</span>
