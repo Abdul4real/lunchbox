@@ -164,44 +164,42 @@ const updatePassword = async (req, res) => {
 
 /* ============================== RECIPES =============================== */
 
-// ---- CREATE (with formidable; image is mandatory) ----
+/** CREATE (multipart/form-data; image required) - any authenticated user */
 const createRecipe = async (req, res) => {
   const form = formidable({ keepExtensions: true, multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ message: "Image upload failed" });
 
-    // flatten single-value arrays from formidable
+    // flatten single-value arrays
     Object.keys(fields).forEach((k) => {
       if (Array.isArray(fields[k])) fields[k] = fields[k][0];
     });
 
     try {
-      // allow ANY authenticated user
+      // current user must exist
       const currentUser = await User.findById(req.userId).select("name email role");
-      if (!currentUser) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+      if (!currentUser) return res.status(401).json({ message: "Unauthorized" });
 
       if (!fields.title || !String(fields.title).trim()) {
         return res.status(400).json({ message: "title is required" });
       }
 
-      // robust image handling (formidable v1 or v2)
+      // robust file handling (formidable v1/v2)
       const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
       const filePath = img?.filepath || img?.path;
-      if (!filePath) {
-        return res.status(400).json({ message: "image is required" });
-      }
+      if (!filePath) return res.status(400).json({ message: "image is required" });
 
-      // Normalize arrays if provided as JSON strings
-      const parsed = { ...fields };
+      // parse structured fields if sent as JSON
       const tryParse = (val) => {
         try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
       };
-      parsed.ingredients = tryParse(parsed.ingredients) || [];
-      parsed.instructions = tryParse(parsed.instructions) || [];
-      parsed.metadata = tryParse(parsed.metadata) || {};
+      const parsed = {
+        ...fields,
+        ingredients: tryParse(fields.ingredients) || [],
+        instructions: tryParse(fields.instructions) || [],
+        metadata: tryParse(fields.metadata) || {},
+      };
 
       const recipe = new Recipe({
         title: String(parsed.title).trim(),
@@ -239,7 +237,6 @@ const createRecipe = async (req, res) => {
         creator: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
       });
 
-      // attach image (mandatory)
       try {
         recipe.image.data = fs.readFileSync(filePath);
         recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
@@ -250,34 +247,42 @@ const createRecipe = async (req, res) => {
       const saved = await recipe.save();
       res.status(201).json(saved);
     } catch (e) {
+      console.error("createRecipe error:", e);
       res.status(400).json({ error: errorHandler.getErrorMessage(e) });
     }
   });
 };
 
-// ---- READ ALL (base64 image to avoid huge buffers) ----
+/** READ ALL (encode image buffers safely) */
 const getAllRecipes = async (_req, res) => {
   try {
-    let recipes = await Recipe.find().sort({ createdAt: -1 });
+    const recipes = await Recipe.find().sort({ createdAt: -1 });
 
     const out = recipes.map((r) => {
-      const obj = r.toObject();
-      if (obj.image?.data) {
-        obj.image = {
-          contentType: obj.image.contentType,
-          data: obj.image.data.toString("base64"),
-        };
+      const obj = r.toObject ? r.toObject() : r;
+      if (obj?.image?.data) {
+        try {
+          obj.image = {
+            contentType: obj.image.contentType || "image/jpeg",
+            data: Buffer.isBuffer(obj.image.data)
+              ? obj.image.data.toString("base64")
+              : obj.image.data,
+          };
+        } catch {
+          obj.image = undefined; // if conversion fails, strip image to avoid 400s
+        }
       }
       return obj;
     });
 
-    res.json(out);
+    return res.json(out);
   } catch (e) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    console.error("getAllRecipes error:", e);
+    return res.status(500).json({ message: e?.message || "Failed to load recipes" });
   }
 };
 
-// ---- PARAM / READ ONE ----
+// Param / Read one
 const recipeByID = async (req, res, next, id) => {
   try {
     const recipe = await Recipe.findById(id);
@@ -291,7 +296,7 @@ const recipeByID = async (req, res, next, id) => {
 
 const readRecipe = (req, res) => res.json(req.recipe);
 
-// ---- UPDATE (optionally with new image) ----
+/** UPDATE (multipart or JSON; image optional) */
 const updateRecipe = async (req, res) => {
   const form = formidable({ keepExtensions: true, multiples: false });
 
@@ -301,18 +306,18 @@ const updateRecipe = async (req, res) => {
     try {
       const recipe = req.recipe;
 
-      // only author (by userId) or admin can update
+      // only author or admin
       const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
       if (!isOwner && !isAdmin(req)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // flatten single-value arrays
+      // flatten fields
       Object.keys(fields).forEach(
         (k) => (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k])
       );
 
-      // attempt to parse structured fields when sent as JSON strings
+      // parse structured fields when sent as JSON strings
       const tryParse = (val) => {
         try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
       };
@@ -344,9 +349,7 @@ const updateRecipe = async (req, res) => {
             )
           : [];
       }
-      if ("metadata" in updates) {
-        updates.metadata = tryParse(updates.metadata) || {};
-      }
+      if ("metadata" in updates) updates.metadata = tryParse(updates.metadata) || {};
       if ("category" in updates && typeof updates.category === "string") {
         updates.category = updates.category.trim() || undefined;
       }
@@ -354,7 +357,7 @@ const updateRecipe = async (req, res) => {
         updates.title = updates.title.trim();
       }
 
-      // handle new image if provided (robust)
+      // optional new image (robust)
       const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
       const filePath = img?.filepath || img?.path;
       if (filePath) {
@@ -372,12 +375,13 @@ const updateRecipe = async (req, res) => {
       const updated = await recipe.save();
       res.json(updated);
     } catch (e) {
+      console.error("updateRecipe error:", e);
       res.status(400).json({ error: errorHandler.getErrorMessage(e) });
     }
   });
 };
 
-// ---- DELETE ----
+// Delete
 const deleteRecipe = async (req, res) => {
   try {
     const recipe = req.recipe;
@@ -398,7 +402,6 @@ const addComment = async (req, res) => {
     const recipe = await Recipe.findById(req.params.recipeId);
     if (!recipe) return res.status(404).json({ error: "Recipe not found" });
 
-    // use current user for name/email
     const user = await User.findById(req.userId).select("name email");
     const { text, rating } = req.body;
 
@@ -494,7 +497,6 @@ const getRecipesByFilter = async (req, res) => {
     const ingredientFilter = req.params["ingredient"].split(",");
     const regexArray = ingredientFilter.map((i) => new RegExp(i.trim(), "i"));
 
-    // match against structured ingredient names
     let recipes = await Recipe.find({ "ingredients.name": { $in: regexArray } });
     const out = recipes.map((r) => {
       const o = r.toObject();
@@ -533,10 +535,6 @@ const addReview = async (req, res) => {
 
     const user = await User.findById(req.userId).select("name email");
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-    // optional: prevent duplicate reviews by same user for same recipe
-    // const existing = await Review.findOne({ recipeId, "author.userId": req.userId });
-    // if (existing) return res.status(400).json({ message: "You already reviewed this recipe" });
 
     const review = await Review.create({
       recipeId,
