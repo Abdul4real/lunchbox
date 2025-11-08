@@ -458,6 +458,19 @@ const updateRecipe = async (req, res) => {
   });
 };
 
+// stream recipe image as binary
+const recipeImage = async (req, res) => {
+  try {
+    const r = await Recipe.findById(req.params.recipeId).select("image");
+    if (!r || !r.image || !r.image.data) return res.status(404).end();
+    res.set("Content-Type", r.image.contentType || "image/jpeg");
+    return res.send(r.image.data); // Buffer
+  } catch {
+    return res.status(400).json({ error: "Could not retrieve image" });
+  }
+};
+
+
 // Delete
 const deleteRecipe = async (req, res) => {
   try {
@@ -686,6 +699,7 @@ export default {
   getAllRecipes,
   recipeByID,
   readRecipe,
+  recipeImage,
   updateRecipe,
   deleteRecipe,
   getRecipesByFilter,

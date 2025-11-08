@@ -15,6 +15,9 @@ router
 router.get("/recipes/filter/ingredient/:ingredient", userCtrl.getRecipesByFilter);
 router.get("/recipes/creator/:name", userCtrl.getRecipesByCreator);
 
++// Image stream (public)
++router.get("/recipes/:recipeId/image", userCtrl.recipeImage);
+
 // Bind :recipeId before using it
 router.param("recipeId", userCtrl.recipeByID);
 

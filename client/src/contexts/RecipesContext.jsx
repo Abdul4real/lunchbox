@@ -46,17 +46,7 @@ const normalizeRecipe = (r) => {
       : r.time || "";
 
   // prefer base64 from API; otherwise use inline placeholder
-  let image = PLACEHOLDER;
-  if (r?.image?.data) {
-    const ct = String(r.image.contentType || "")
-      .toLowerCase()
-      .startsWith("image/")
-      ? r.image.contentType
-      : "image/jpeg"; // guard bad content-types
-    image = `data:${ct};base64,${r.image.data}`;
-  } else if (typeof r?.image === "string" && r.image.trim()) {
-    image = r.image; // if your API sometimes returns a URL
-  }
+ const image = `${API}/api/users/recipes/${id}/image`;
 
   return {
     id,
