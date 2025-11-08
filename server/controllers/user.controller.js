@@ -489,25 +489,54 @@ const deleteRecipe = async (req, res) => {
 /* ============================== COMMENTS ============================== */
 const addComment = async (req, res) => {
   try {
-    const recipe = await Recipe.findById(req.params.recipeId);
+    const { recipeId } = req.params;
+    const recipe = await Recipe.findById(recipeId);
     if (!recipe) return res.status(404).json({ error: "Recipe not found" });
 
-    const user = await User.findById(req.userId).select("name email");
-    const { text, rating } = req.body;
+    // Accept guest fields; prefer signed-in user if present
+    let name = (req.body?.name || "").trim();
+    let email = (req.body?.email || "").trim();
+    const text = (req.body?.text || "").trim();
+    const rating = typeof req.body?.rating !== "undefined" ? Number(req.body.rating) : undefined;
+
+    if (!text && typeof rating === "undefined") {
+      return res.status(400).json({ error: "text or rating is required" });
+    }
+
+    if (req.userId) {
+      const user = await User.findById(req.userId).select("name email");
+      name = user?.name || name || "User";
+      email = user?.email || email || "unknown@example.com";
+    } else {
+      // Guest defaults
+      if (!name) name = "Guest";
+      if (!email) email = "guest@example.com";
+    }
+
+    // Basic sanitation / limits (optional but helpful)
+    if (text.length > 2000) return res.status(400).json({ error: "Comment too long" });
+    if (typeof rating !== "undefined" && (rating < 0 || rating > 5)) {
+      return res.status(400).json({ error: "rating must be 0–5" });
+    }
 
     recipe.comments.push({
-      name: user?.name || "Anonymous",
-      email: user?.email || "unknown@example.com",
+      name,
+      email,
       text,
       rating,
+      // You can store a guest marker/ip for moderation if you want:
+      // guest: !req.userId,
+      // ip: req.ip,
     });
     await recipe.save();
 
-    res.status(201).json({ message: "Comment added", recipe });
+    return res.status(201).json({ message: "Comment added", recipe });
   } catch (e) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    return res.status(400).json({ error: errorHandler.getErrorMessage(e) });
   }
 };
+
+
 
 const updateComment = async (req, res) => {
   try {
@@ -619,22 +648,38 @@ const getRecipesByCreator = async (req, res) => {
 const addReview = async (req, res) => {
   try {
     const { recipeId } = req.params;
-    const { rating, comment = "" } = req.body ?? {};
-    if (!rating) return res.status(400).json({ message: "rating is required" });
+    let { rating, comment = "", name } = req.body ?? {};
+    rating = Number(rating);
 
-    const user = await User.findById(req.userId).select("name email");
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (!rating && rating !== 0) {
+      return res.status(400).json({ message: "rating is required" });
+    }
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "rating must be 1–5" });
+    }
+    if (typeof comment !== "string") comment = "";
 
+    // Prefer signed-in identity; otherwise guest
+    let username = (name || "").trim();
+    if (req.userId) {
+      const user = await User.findById(req.userId).select("name email");
+      username = user?.name || user?.email?.split("@")[0] || username || "User";
+    } else {
+      if (!username) username = "Guest";
+    }
+
+    // author.userId can be null for guests
     const review = await Review.create({
       recipeId,
-      author: { userId: req.userId, username: user.name || user.email.split("@")[0] },
+      author: { userId: req.userId || null, username },
       rating,
       comment,
+      // guest: !req.userId, ip: req.ip // optional fields if your schema allows
     });
 
-    res.status(201).json({ message: "Review added", review });
+    return res.status(201).json({ message: "Review added", review });
   } catch (err) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(err) });
+    return res.status(400).json({ error: errorHandler.getErrorMessage(err) });
   }
 };
 
