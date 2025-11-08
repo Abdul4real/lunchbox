@@ -1,32 +1,28 @@
-// server/routes/notification.routes.js
 import express from "express";
-import {
-  createNotification,
-  getUserNotifications,
-  markAsRead,
-  markAllRead,
-  deleteNotification,
-  deleteAllUserNotifications,
-} from "../controllers/notification.controller.js";
-import { requireAuth } from "../middleware/auth.js";
+import notificationCtrl from "../controllers/notification.controller.js";
+import authCtrl from "../controllers/auth.controller.js";
 
 const router = express.Router();
 
-// Create a new notification or get all for logged-in user
-router.route("/")
-  .post(requireAuth, createNotification)
-  .get(requireAuth, getUserNotifications);
+// Create a new notification or get all for the user
+router
+  .route("/")
+  .post(authCtrl.requireSignin, notificationCtrl.createNotification)
+  .get(authCtrl.requireSignin, notificationCtrl.getUserNotifications);
 
 // Mark a single notification as read
-router.put("/:notificationId/read", requireAuth, markAsRead);
-
-// Mark all notifications as read
-router.put("/read/all", requireAuth, markAllRead);
+router
+  .route("/:notificationId/read")
+  .put(authCtrl.requireSignin, notificationCtrl.markAsRead);
 
 // Delete a single notification
-router.delete("/:notificationId", requireAuth, deleteNotification);
+router
+  .route("/:notificationId")
+  .delete(authCtrl.requireSignin, notificationCtrl.deleteNotification);
 
 // Clear all notifications for current user
-router.delete("/clear/all", requireAuth, deleteAllUserNotifications);
+router
+  .route("/clear/all")
+  .delete(authCtrl.requireSignin, notificationCtrl.deleteAllUserNotifications);
 
 export default router;
