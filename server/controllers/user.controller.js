@@ -1,3 +1,4 @@
+// server/controllers/user.controller.js
 import fs from "fs";
 import formidable from "formidable";
 import User from "../models/user.model.js";
@@ -165,7 +166,7 @@ const updatePassword = async (req, res) => {
 
 // ---- CREATE (with formidable; image is mandatory) ----
 const createRecipe = async (req, res) => {
-  const form = formidable({ keepExtensions: true });
+  const form = formidable({ keepExtensions: true, multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ message: "Image upload failed" });
@@ -176,22 +177,24 @@ const createRecipe = async (req, res) => {
     });
 
     try {
-      // ensure admin
-      const admin = await User.findById(req.userId).select("name email role");
-      if (!admin || admin.role !== "admin") {
-        return res.status(403).json({ message: "Admin only" });
+      // allow ANY authenticated user
+      const currentUser = await User.findById(req.userId).select("name email role");
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
       }
 
       if (!fields.title || !String(fields.title).trim()) {
         return res.status(400).json({ message: "title is required" });
       }
 
-      // image required
-      if (!files?.image) {
+      // robust image handling (formidable v1 or v2)
+      const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
+      const filePath = img?.filepath || img?.path;
+      if (!filePath) {
         return res.status(400).json({ message: "image is required" });
       }
 
-      // Normalize possible arrays into structured fields if provided as JSON strings
+      // Normalize arrays if provided as JSON strings
       const parsed = { ...fields };
       const tryParse = (val) => {
         try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
@@ -204,11 +207,13 @@ const createRecipe = async (req, res) => {
         title: String(parsed.title).trim(),
         description: parsed.description || "",
         ingredients: Array.isArray(parsed.ingredients)
-          ? parsed.ingredients.map((it) =>
-              typeof it === "string"
-                ? { name: it }
-                : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
-            ).filter((i) => i.name?.trim())
+          ? parsed.ingredients
+              .map((it) =>
+                typeof it === "string"
+                  ? { name: it }
+                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+              )
+              .filter((i) => i.name?.trim())
           : [],
         instructions: Array.isArray(parsed.instructions)
           ? parsed.instructions.map((step, idx) =>
@@ -224,18 +229,23 @@ const createRecipe = async (req, res) => {
         metadata: parsed.metadata,
         category: parsed.category?.trim(),
         author: {
-          userId: admin._id,
-          username: admin.name || (admin.email?.split("@")[0] ?? "Administrator"),
+          userId: currentUser._id,
+          username: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
         },
-        status: parsed.status && ["pending", "approved", "rejected"].includes(parsed.status)
-          ? parsed.status
-          : "approved",
-        creator: admin.name || (admin.email?.split("@")[0] ?? "Administrator"), // legacy compat
+        status:
+          parsed.status && ["pending", "approved", "rejected"].includes(parsed.status)
+            ? parsed.status
+            : "approved",
+        creator: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
       });
 
       // attach image (mandatory)
-      recipe.image.data = fs.readFileSync(files.image.filepath);
-      recipe.image.contentType = files.image.mimetype;
+      try {
+        recipe.image.data = fs.readFileSync(filePath);
+        recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
+      } catch {
+        return res.status(400).json({ message: "Could not read uploaded image" });
+      }
 
       const saved = await recipe.save();
       res.status(201).json(saved);
@@ -283,7 +293,7 @@ const readRecipe = (req, res) => res.json(req.recipe);
 
 // ---- UPDATE (optionally with new image) ----
 const updateRecipe = async (req, res) => {
-  const form = formidable({ keepExtensions: true });
+  const form = formidable({ keepExtensions: true, multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ error: "Image upload failed" });
@@ -298,7 +308,9 @@ const updateRecipe = async (req, res) => {
       }
 
       // flatten single-value arrays
-      Object.keys(fields).forEach((k) => (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k]));
+      Object.keys(fields).forEach(
+        (k) => (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k])
+      );
 
       // attempt to parse structured fields when sent as JSON strings
       const tryParse = (val) => {
@@ -309,11 +321,13 @@ const updateRecipe = async (req, res) => {
       if ("ingredients" in updates) {
         const ing = tryParse(updates.ingredients) || [];
         updates.ingredients = Array.isArray(ing)
-          ? ing.map((it) =>
-              typeof it === "string"
-                ? { name: it }
-                : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
-            ).filter((i) => i.name?.trim())
+          ? ing
+              .map((it) =>
+                typeof it === "string"
+                  ? { name: it }
+                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+              )
+              .filter((i) => i.name?.trim())
           : [];
       }
       if ("instructions" in updates) {
@@ -340,10 +354,16 @@ const updateRecipe = async (req, res) => {
         updates.title = updates.title.trim();
       }
 
-      // handle new image if provided
-      if (files?.image) {
-        recipe.image.data = fs.readFileSync(files.image.filepath);
-        recipe.image.contentType = files.image.mimetype;
+      // handle new image if provided (robust)
+      const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
+      const filePath = img?.filepath || img?.path;
+      if (filePath) {
+        try {
+          recipe.image.data = fs.readFileSync(filePath);
+          recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
+        } catch {
+          return res.status(400).json({ message: "Could not read uploaded image" });
+        }
       }
 
       Object.assign(recipe, updates);
