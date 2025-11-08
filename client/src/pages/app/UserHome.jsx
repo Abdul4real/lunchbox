@@ -16,16 +16,14 @@ export default function UserHome() {
           >
             <div className="aspect-[4/3] bg-gray-100 dark:bg-neutral-800">
               <img
-                src={r.image}
-                alt={r.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // if the URL/base64 is bad, fall back gracefully
-                  if (e.currentTarget.src !== PLACEHOLDER) {
-                    e.currentTarget.src = PLACEHOLDER;
-                  }
-                }}
-              />
+  src={r.image}
+  alt={r.title}
+  className="w-full h-full object-cover"
+  onError={(e) => {
+    if (e.currentTarget.src !== PLACEHOLDER) e.currentTarget.src = PLACEHOLDER;
+  }}
+/>
+
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between">
