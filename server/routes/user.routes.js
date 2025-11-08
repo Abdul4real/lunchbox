@@ -16,32 +16,32 @@ const isSelfOrAdmin = (req, res, next) => {
 
 /* ================================ USERS ================================ */
 
-// Create new user (public) or list all users (admin only)
-router.route("/")
-  .post(userCtrl.create)
-  .get(requireAuth, requireAdmin, userCtrl.list);
+// Public registration endpoint
+router.post("/register", userCtrl.create);
+
+// Admin-only list users
+router.get("/", requireAuth, requireAdmin, userCtrl.list);
 
 // Bind :userId so req.profile is available downstream
 router.param("userId", userCtrl.userByID);
 
-router.route("/:userId")
+router
+  .route("/:userId")
   .get(requireAuth, userCtrl.read)
   .put(requireAuth, isSelfOrAdmin, userCtrl.update)
   .delete(requireAuth, isSelfOrAdmin, userCtrl.remove);
 
-router.route("/:userId/admin")
-  .put(requireAuth, requireAdmin, userCtrl.setAdmin);
+router.route("/:userId/admin").put(requireAuth, requireAdmin, userCtrl.setAdmin);
 
-router.route("/:userId/suspend")
-  .put(requireAuth, requireAdmin, userCtrl.setSuspended);
+router.route("/:userId/suspend").put(requireAuth, requireAdmin, userCtrl.setSuspended);
 
-router.route("/:userId/password")
-  .put(requireAuth, isSelfOrAdmin, userCtrl.updatePassword);
+router.route("/:userId/password").put(requireAuth, isSelfOrAdmin, userCtrl.updatePassword);
 
 /* =============================== RECIPES =============================== */
 
 // Public list (returns base64 image metadata) and Admin create (image required)
-router.route("/recipes")
+router
+  .route("/recipes")
   .get(userCtrl.getAllRecipes)
   .post(requireAuth, requireAdmin, userCtrl.createRecipe);
 
@@ -53,7 +53,8 @@ router.get("/recipes/creator/:name", userCtrl.getRecipesByCreator);
 router.param("recipeId", userCtrl.recipeByID);
 
 // Read (public), Update/Delete (auth; controller checks owner/admin)
-router.route("/recipes/:recipeId")
+router
+  .route("/recipes/:recipeId")
   .get(userCtrl.readRecipe)
   .put(requireAuth, userCtrl.updateRecipe)
   .delete(requireAuth, userCtrl.deleteRecipe);
