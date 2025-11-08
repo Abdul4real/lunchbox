@@ -1,4 +1,3 @@
-// src/contexts/RecipesContext.jsx
 import React, {
   createContext,
   useContext,
@@ -12,7 +11,18 @@ const RecipesContext = createContext();
 export const useRecipes = () => useContext(RecipesContext);
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const TOKEN_KEY = "token"; // matches your SignIn.jsx
+const TOKEN_KEY = "token";
+
+// inline placeholder (works even if you have no file in /public/images)
+const PLACEHOLDER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
+      <rect width="100%" height="100%" fill="#f3f4f6"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+            font-family="sans-serif" font-size="24" fill="#9ca3af">No image</text>
+    </svg>`
+  );
 
 const getToken = () =>
   localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
@@ -35,10 +45,18 @@ const normalizeRecipe = (r) => {
       ? `${r.metadata.prepTime} min`
       : r.time || "";
 
-  const image =
-    r?.image?.data
-      ? `data:${r.image.contentType};base64,${r.image.data}`
-      : "/images/placeholder.jpg";
+  // prefer base64 from API; otherwise use inline placeholder
+  let image = PLACEHOLDER;
+  if (r?.image?.data) {
+    const ct = String(r.image.contentType || "")
+      .toLowerCase()
+      .startsWith("image/")
+      ? r.image.contentType
+      : "image/jpeg"; // guard bad content-types
+    image = `data:${ct};base64,${r.image.data}`;
+  } else if (typeof r?.image === "string" && r.image.trim()) {
+    image = r.image; // if your API sometimes returns a URL
+  }
 
   return {
     id,
@@ -70,7 +88,8 @@ export default function RecipesProvider({ children }) {
     try {
       const res = await fetch(`${API}/api/users/recipes`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || data?.error || "Failed to load recipes");
+      if (!res.ok)
+        throw new Error(data?.message || data?.error || "Failed to load recipes");
       setRecipes((data || []).map(normalizeRecipe));
     } catch (e) {
       console.error(e);
@@ -85,7 +104,6 @@ export default function RecipesProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  // ---- CRUD (only addReview used by your RecipeDetails) ----
   const addReview = async (id, review) => {
     const token = getToken();
     const res = await fetch(`${API}/api/users/recipes/${id}/reviews`, {
@@ -102,7 +120,6 @@ export default function RecipesProvider({ children }) {
     return json;
   };
 
-  // local-only toggle (no backend route yet)
   const toggleBookmark = (id) =>
     setRecipes((rs) =>
       rs.map((r) =>
@@ -126,6 +143,7 @@ export default function RecipesProvider({ children }) {
       refresh,
       addReview,
       toggleBookmark,
+      PLACEHOLDER, // export placeholder for onError use
     }),
     [recipes, loading, err, refresh]
   );
