@@ -29,13 +29,13 @@ router
   .delete(requireAuth, userCtrl.deleteRecipe);
 
 /* =============================== COMMENTS ============================== */
-router.post("/recipes/:recipeId/comments", requireAuth, userCtrl.addComment);
+router.post("/recipes/:recipeId/comments", userCtrl.addComment);
 router.put("/recipes/:recipeId/comments/:commentId", requireAuth, userCtrl.updateComment);
 router.delete("/recipes/:recipeId/comments/:commentId", requireAuth, userCtrl.deleteComment);
 router.get("/comments/by/:email", userCtrl.getCommentsByUser);
 
 /* ================================ REVIEWS ============================== */
-router.post("/recipes/:recipeId/reviews", requireAuth, userCtrl.addReview);
+router.post("/recipes/:recipeId/reviews",  userCtrl.addReview);
 router.get("/recipes/:recipeId/reviews", userCtrl.listReviewsByRecipe);
 router.put("/reviews/:reviewId", requireAuth, userCtrl.updateReview);
 router.delete("/reviews/:reviewId", requireAuth, userCtrl.deleteReview);
