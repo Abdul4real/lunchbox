@@ -1,9 +1,11 @@
+// src/pages/SignIn.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-// Use Vite env or default to backend port 5000
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const TOKEN_KEY = "lb_token";
+const USER_KEY = "lb_user";
 
 export default function SignIn() {
   const nav = useNavigate();
@@ -18,9 +20,9 @@ export default function SignIn() {
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(""); setLoading(true);
+    setErr("");
+    setLoading(true);
     try {
-      // ✅ correct endpoint
       const res = await fetch(`${API}/api/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -29,20 +31,20 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Sign in failed");
 
-      // ✅ persist token (remember -> localStorage; else sessionStorage)
+      // ✅ Store token consistently for AddRecipe & other protected routes
       if (remember) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       } else {
-        sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem(TOKEN_KEY, data.token);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
       }
 
-      // ✅ update your auth context
+      // ✅ Update AuthContext
       loginUser({ token: data.token, user: data.user });
 
-      // Go wherever you want after login
-      nav("/app"); // or "/"
+      // ✅ Redirect after login
+      nav("/app");
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -57,7 +59,6 @@ export default function SignIn() {
           onClick={() => nav("/")}
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-neutral-400 mb-3 hover:text-gray-900 dark:hover:text-white"
         >
-          {/* back icon */}
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
