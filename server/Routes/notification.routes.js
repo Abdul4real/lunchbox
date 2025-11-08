@@ -1,3 +1,4 @@
+// server/routes/notification.routes.js
 import express from "express";
 import * as notificationCtrl from "../controllers/notification.controller.js";
 import { requireAuth } from "../middleware/auth.js"; // must set req.userId
