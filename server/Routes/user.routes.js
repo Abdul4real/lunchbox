@@ -6,7 +6,8 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 const router = express.Router();
 
 /* =============================== RECIPES =============================== */
-// Public list (returns base64 image metadata) and Authenticated create (image required)
+
+// Public list (returns base64 image metadata) and Admin create (image required)
 router
   .route("/recipes")
   .get(userCtrl.getAllRecipes)
@@ -16,7 +17,7 @@ router
 router.get("/recipes/filter/ingredient/:ingredient", userCtrl.getRecipesByFilter);
 router.get("/recipes/creator/:name", userCtrl.getRecipesByCreator);
 
-// Bind :recipeId before using it
+// Bind :recipeId to load a recipe into req.recipe
 router.param("recipeId", userCtrl.recipeByID);
 
 // Read (public), Update/Delete (auth; controller checks owner/admin)
@@ -38,15 +39,4 @@ router.get("/recipes/:recipeId/reviews", userCtrl.listReviewsByRecipe);
 router.put("/reviews/:reviewId", requireAuth, userCtrl.updateReview);
 router.delete("/reviews/:reviewId", requireAuth, userCtrl.deleteReview);
 
-/* ================================ USERS ================================ */
-// Public registration endpoint
-router.post("/register", userCtrl.create);
-
-// Admin-only list users
-router.get("/", requireAuth, requireAdmin, userCtrl.list);
-
-// Only bind :userId AFTER all /recipes routes so it doesn't swallow "recipes"
-router.param("userId", userCtrl.userByID);
-
-// Constrain :userId to 24-hex ObjectId so strings like "recipes" won't match
 export default router;
