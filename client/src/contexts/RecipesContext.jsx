@@ -13,7 +13,7 @@ export const useRecipes = () => useContext(RecipesContext);
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const TOKEN_KEY = "token";
 
-// inline placeholder (works even if you have no file in /public/images)
+// inline placeholder (works even if you have no file in /public/images)étest
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
