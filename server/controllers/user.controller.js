@@ -23,10 +23,14 @@ const create = async (req, res) => {
     const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "name, email, and password are required" });
+      return res
+        .status(400)
+        .json({ error: "name, email, and password are required" });
     }
     if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters" });
     }
 
     const user = new User({
@@ -37,26 +41,36 @@ const create = async (req, res) => {
     });
 
     await user.save();
-    return res.status(201).json({ message: "User created successfully", user: publicUser(user) });
+    return res
+      .status(201)
+      .json({ message: "User created successfully", user: publicUser(user) });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.email) {
-      return res.status(400).json({ error: "Email is already registered" });
+      return res
+        .status(400)
+        .json({ error: "Email is already registered" });
     }
-    return res
-      .status(400)
-      .json({ error: errorHandler?.getErrorMessage?.(err) || err.message || "Could not create user" });
+    return res.status(400).json({
+      error:
+        errorHandler?.getErrorMessage?.(err) ||
+        err.message ||
+        "Could not create user",
+    });
   }
 };
 
 // List
 const list = async (_req, res) => {
   try {
-    const users = await User.find().select("_id name email role isSuspended createdAt updatedAt");
+    const users = await User.find().select(
+      "_id name email role isSuspended createdAt updatedAt"
+    );
     return res.json(users);
   } catch (err) {
-    return res
-      .status(400)
-      .json({ error: errorHandler?.getErrorMessage?.(err) || "Could not list users" });
+    return res.status(400).json({
+      error:
+        errorHandler?.getErrorMessage?.(err) || "Could not list users",
+    });
   }
 };
 
@@ -85,7 +99,9 @@ const update = async (req, res) => {
       if (key in req.body) {
         if (key === "password") {
           if (!req.body.password || req.body.password.length < 6) {
-            return res.status(400).json({ error: "Password must be at least 6 characters" });
+            return res.status(400).json({
+              error: "Password must be at least 6 characters",
+            });
           }
           user.password = req.body.password; // triggers hashing
         } else {
@@ -98,11 +114,14 @@ const update = async (req, res) => {
     return res.json(publicUser(user));
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.email) {
-      return res.status(400).json({ error: "Email is already registered" });
+      return res
+        .status(400)
+        .json({ error: "Email is already registered" });
     }
-    return res
-      .status(400)
-      .json({ error: errorHandler?.getErrorMessage?.(err) || "Could not update user" });
+    return res.status(400).json({
+      error:
+        errorHandler?.getErrorMessage?.(err) || "Could not update user",
+    });
   }
 };
 
@@ -112,9 +131,10 @@ const remove = async (req, res) => {
     const deleted = await req.profile.deleteOne();
     return res.json(publicUser(deleted));
   } catch (err) {
-    return res
-      .status(400)
-      .json({ error: errorHandler?.getErrorMessage?.(err) || "Could not delete user" });
+    return res.status(400).json({
+      error:
+        errorHandler?.getErrorMessage?.(err) || "Could not delete user",
+    });
   }
 };
 
@@ -138,9 +158,14 @@ const setSuspended = async (req, res) => {
     const { isSuspended } = req.body; // boolean
     user.isSuspended = !!isSuspended;
     await user.save();
-    return res.json({ message: "Suspension status updated", user: publicUser(user) });
+    return res.json({
+      message: "Suspension status updated",
+      user: publicUser(user),
+    });
   } catch (err) {
-    return res.status(400).json({ error: "Could not update suspension status" });
+    return res
+      .status(400)
+      .json({ error: "Could not update suspension status" });
   }
 };
 
@@ -150,13 +175,17 @@ const updatePassword = async (req, res) => {
     const user = req.profile;
     const { password } = req.body;
     if (!password || password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+      return res.status(400).json({
+        error: "Password must be at least 6 characters",
+      });
     }
     user.password = password; // triggers hashing
     await user.save();
     return res.json({ message: "Password updated", user: publicUser(user) });
   } catch (err) {
-    return res.status(400).json({ error: "Could not update password" });
+    return res
+      .status(400)
+      .json({ error: "Could not update password" });
   }
 };
 
@@ -181,21 +210,31 @@ const createRecipe = async (req, res) => {
 
     try {
       // ensure authenticated user exists
-      const currentUser = await User.findById(req.userId).select("name email role");
-      if (!currentUser) return res.status(401).json({ message: "Unauthorized" });
+      const currentUser = await User.findById(req.userId).select(
+        "name email role"
+      );
+      if (!currentUser)
+        return res.status(401).json({ message: "Unauthorized" });
 
       if (!fields.title || !String(fields.title).trim()) {
-        return res.status(400).json({ message: "title is required" });
+        return res
+          .status(400)
+          .json({ message: "title is required" });
       }
 
       // robust file handling (formidable v1/v2)
       const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
       const filePath = img?.filepath || img?.path;
-      if (!filePath) return res.status(400).json({ message: "image is required" });
+      if (!filePath)
+        return res.status(400).json({ message: "image is required" });
 
       // parse structured fields if sent as JSON strings
       const tryParse = (val) => {
-        try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
+        try {
+          return typeof val === "string" ? JSON.parse(val) : val;
+        } catch {
+        }
+        return val;
       };
       const parsed = {
         ...fields,
@@ -212,7 +251,11 @@ const createRecipe = async (req, res) => {
               .map((it) =>
                 typeof it === "string"
                   ? { name: it }
-                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+                  : {
+                      name: it?.name ?? "",
+                      quantity: it?.quantity,
+                      unit: it?.unit,
+                    }
               )
               .filter((i) => i.name?.trim())
           : [],
@@ -231,28 +274,38 @@ const createRecipe = async (req, res) => {
         category: parsed.category?.trim(),
         author: {
           userId: currentUser._id,
-          username: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
+          username:
+            currentUser.name ||
+            (currentUser.email?.split("@")[0] ?? "User"),
         },
         status:
-          parsed.status && ["pending", "approved", "rejected"].includes(parsed.status)
+          parsed.status &&
+          ["pending", "approved", "rejected"].includes(parsed.status)
             ? parsed.status
             : "approved",
-        creator: currentUser.name || (currentUser.email?.split("@")[0] ?? "User"),
+        creator:
+          currentUser.name ||
+          (currentUser.email?.split("@")[0] ?? "User"),
       });
 
       // attach image (required)
       try {
         recipe.image.data = fs.readFileSync(filePath);
-        recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
+        recipe.image.contentType =
+          img?.mimetype || img?.type || "application/octet-stream";
       } catch {
-        return res.status(400).json({ message: "Could not read uploaded image" });
+        return res
+          .status(400)
+          .json({ message: "Could not read uploaded image" });
       }
 
       const saved = await recipe.save();
       res.status(201).json(saved);
     } catch (e) {
       console.error("createRecipe error:", e);
-      res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+      res
+        .status(400)
+        .json({ error: errorHandler.getErrorMessage(e) });
     }
   });
 };
@@ -272,6 +325,7 @@ const getAllRecipes = async (_req, res) => {
         instructions: Array.isArray(r.instructions) ? r.instructions : [],
         creator: r.creator || "",
         reviews: Array.isArray(r.reviews) ? r.reviews : [],
+        comments: Array.isArray(r.comments) ? r.comments : [],
         rating: typeof r.rating === "number" ? r.rating : 0,
         bookmarks: typeof r.bookmarks === "number" ? r.bookmarks : 0,
         bookmarked: !!r.bookmarked,
@@ -321,7 +375,8 @@ const updateRecipe = async (req, res) => {
     try {
       const recipe = req.recipe;
 
-      const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
+      const isOwner =
+        recipe?.author?.userId?.toString?.() === String(req.userId);
       if (!isOwner && !isAdmin(req)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
@@ -335,7 +390,11 @@ const updateRecipe = async (req, res) => {
               .map((it) =>
                 typeof it === "string"
                   ? { name: it }
-                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+                  : {
+                      name: it?.name ?? "",
+                      quantity: it?.quantity,
+                      unit: it?.unit,
+                    }
               )
               .filter((i) => i.name?.trim())
           : undefined;
@@ -353,8 +412,10 @@ const updateRecipe = async (req, res) => {
             )
           : undefined;
 
-      if ("ingredients" in updates) updates.ingredients = toArrIng(updates.ingredients) ?? [];
-      if ("instructions" in updates) updates.instructions = toArrSteps(updates.instructions) ?? [];
+      if ("ingredients" in updates)
+        updates.ingredients = toArrIng(updates.ingredients) ?? [];
+      if ("instructions" in updates)
+        updates.instructions = toArrSteps(updates.instructions) ?? [];
       if ("category" in updates && typeof updates.category === "string") {
         updates.category = updates.category.trim() || undefined;
       }
@@ -368,7 +429,9 @@ const updateRecipe = async (req, res) => {
       return res.json(updated);
     } catch (e) {
       console.error("updateRecipe (JSON) error:", e);
-      return res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+      return res
+        .status(400)
+        .json({ error: errorHandler.getErrorMessage(e) });
     }
   }
 
@@ -386,17 +449,23 @@ const updateRecipe = async (req, res) => {
     try {
       const recipe = req.recipe;
 
-      const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
+      const isOwner =
+        recipe?.author?.userId?.toString?.() === String(req.userId);
       if (!isOwner && !isAdmin(req)) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
       Object.keys(fields).forEach(
-        (k) => (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k])
+        (k) =>
+          (fields[k] = Array.isArray(fields[k]) ? fields[k][0] : fields[k])
       );
 
       const tryParse = (val) => {
-        try { return typeof val === "string" ? JSON.parse(val) : val; } catch { return val; }
+        try {
+          return typeof val === "string" ? JSON.parse(val) : val;
+        } catch {
+        }
+        return val;
       };
 
       const updates = { ...fields };
@@ -407,7 +476,11 @@ const updateRecipe = async (req, res) => {
               .map((it) =>
                 typeof it === "string"
                   ? { name: it }
-                  : { name: it?.name ?? "", quantity: it?.quantity, unit: it?.unit }
+                  : {
+                      name: it?.name ?? "",
+                      quantity: it?.quantity,
+                      unit: it?.unit,
+                    }
               )
               .filter((i) => i.name?.trim())
           : [];
@@ -426,7 +499,8 @@ const updateRecipe = async (req, res) => {
             )
           : [];
       }
-      if ("metadata" in updates) updates.metadata = tryParse(updates.metadata) || {};
+      if ("metadata" in updates)
+        updates.metadata = tryParse(updates.metadata) || {};
       if ("category" in updates && typeof updates.category === "string") {
         updates.category = updates.category.trim() || undefined;
       }
@@ -435,14 +509,19 @@ const updateRecipe = async (req, res) => {
       }
 
       // optional new image
-      const img = Array.isArray(files?.image) ? files.image[0] : files?.image;
+      const img = Array.isArray(files?.image)
+        ? files.image[0]
+        : files?.image;
       const filePath = img?.filepath || img?.path;
       if (filePath) {
         try {
           recipe.image.data = fs.readFileSync(filePath);
-          recipe.image.contentType = img?.mimetype || img?.type || "application/octet-stream";
+          recipe.image.contentType =
+            img?.mimetype || img?.type || "application/octet-stream";
         } catch {
-          return res.status(400).json({ message: "Could not read uploaded image" });
+          return res
+            .status(400)
+            .json({ message: "Could not read uploaded image" });
         }
       }
 
@@ -453,7 +532,9 @@ const updateRecipe = async (req, res) => {
       res.json(updated);
     } catch (e) {
       console.error("updateRecipe (multipart) error:", e);
-      res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+      res
+        .status(400)
+        .json({ error: errorHandler.getErrorMessage(e) });
     }
   });
 };
@@ -470,19 +551,21 @@ const recipeImage = async (req, res) => {
   }
 };
 
-
 // Delete
 const deleteRecipe = async (req, res) => {
   try {
     const recipe = req.recipe;
-    const isOwner = recipe?.author?.userId?.toString?.() === String(req.userId);
+    const isOwner =
+      recipe?.author?.userId?.toString?.() === String(req.userId);
     if (!isOwner && !isAdmin(req)) {
       return res.status(403).json({ error: "Unauthorized" });
     }
     await Recipe.findByIdAndDelete(recipe._id);
     res.json({ message: "Recipe deleted" });
   } catch (e) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    res
+      .status(400)
+      .json({ error: errorHandler.getErrorMessage(e) });
   }
 };
 
@@ -497,10 +580,15 @@ const addComment = async (req, res) => {
     let name = (req.body?.name || "").trim();
     let email = (req.body?.email || "").trim();
     const text = (req.body?.text || "").trim();
-    const rating = typeof req.body?.rating !== "undefined" ? Number(req.body.rating) : undefined;
+    const rating =
+      typeof req.body?.rating !== "undefined"
+        ? Number(req.body.rating)
+        : undefined;
 
     if (!text && typeof rating === "undefined") {
-      return res.status(400).json({ error: "text or rating is required" });
+      return res
+        .status(400)
+        .json({ error: "text or rating is required" });
     }
 
     if (req.userId) {
@@ -514,29 +602,35 @@ const addComment = async (req, res) => {
     }
 
     // Basic sanitation / limits (optional but helpful)
-    if (text.length > 2000) return res.status(400).json({ error: "Comment too long" });
-    if (typeof rating !== "undefined" && (rating < 0 || rating > 5)) {
-      return res.status(400).json({ error: "rating must be 0–5" });
+    if (text.length > 2000)
+      return res
+        .status(400)
+        .json({ error: "Comment too long" });
+    if (
+      typeof rating !== "undefined" &&
+      (rating < 0 || rating > 5)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "rating must be 0–5" });
     }
 
+    if (!Array.isArray(recipe.comments)) recipe.comments = [];
     recipe.comments.push({
       name,
       email,
       text,
       rating,
-      // You can store a guest marker/ip for moderation if you want:
-      // guest: !req.userId,
-      // ip: req.ip,
     });
     await recipe.save();
 
     return res.status(201).json({ message: "Comment added", recipe });
   } catch (e) {
-    return res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    return res.status(400).json({
+      error: errorHandler.getErrorMessage(e),
+    });
   }
 };
-
-
 
 const updateComment = async (req, res) => {
   try {
@@ -547,7 +641,8 @@ const updateComment = async (req, res) => {
     if (!recipe) return res.status(404).json({ error: "Recipe not found" });
 
     const comment = recipe.comments.id(commentId);
-    if (!comment) return res.status(404).json({ error: "Comment not found" });
+    if (!comment)
+      return res.status(404).json({ error: "Comment not found" });
 
     const user = await User.findById(req.userId).select("email");
     if (!user || user.email !== comment.email) {
@@ -571,18 +666,23 @@ const deleteComment = async (req, res) => {
     if (!recipe) return res.status(404).json({ error: "Recipe not found" });
 
     const comment = recipe.comments.id(commentId);
-    if (!comment) return res.status(404).json({ error: "Comment not found" });
+    if (!comment)
+      return res.status(404).json({ error: "Comment not found" });
 
     const user = await User.findById(req.userId).select("email");
-    const canDelete = isAdmin(req) || (user && user.email === comment.email);
-    if (!canDelete) return res.status(403).json({ error: "Not authorized" });
+    const canDelete =
+      isAdmin(req) || (user && user.email === comment.email);
+    if (!canDelete)
+      return res.status(403).json({ error: "Not authorized" });
 
     comment.deleteOne();
     await recipe.save();
 
     res.json({ message: "Comment deleted", recipe });
   } catch (e) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(e) });
+    res
+      .status(400)
+      .json({ error: errorHandler.getErrorMessage(e) });
   }
 };
 
@@ -614,9 +714,13 @@ const getCommentsByUser = async (req, res) => {
 const getRecipesByFilter = async (req, res) => {
   try {
     const ingredientFilter = req.params["ingredient"].split(",");
-    const regexArray = ingredientFilter.map((i) => new RegExp(i.trim(), "i"));
+    const regexArray = ingredientFilter.map(
+      (i) => new RegExp(i.trim(), "i")
+    );
 
-    let recipes = await Recipe.find({ "ingredients.name": { $in: regexArray } });
+    let recipes = await Recipe.find({
+      "ingredients.name": { $in: regexArray },
+    });
     const out = recipes.map((r) => {
       const o = r.toObject();
       if (o.image?.data)
@@ -640,7 +744,9 @@ const getRecipesByCreator = async (req, res) => {
     });
     res.json(recipes);
   } catch {
-    res.status(400).json({ error: "Could not fetch recipes" });
+    res
+      .status(400)
+      .json({ error: "Could not fetch recipes" });
   }
 };
 
@@ -652,44 +758,85 @@ const addReview = async (req, res) => {
     rating = Number(rating);
 
     if (!rating && rating !== 0) {
-      return res.status(400).json({ message: "rating is required" });
+      return res
+        .status(400)
+        .json({ message: "rating is required" });
     }
     if (rating < 1 || rating > 5) {
-      return res.status(400).json({ message: "rating must be 1–5" });
+      return res
+        .status(400)
+        .json({ message: "rating must be 1–5" });
     }
     if (typeof comment !== "string") comment = "";
+
+    const recipe = await Recipe.findById(recipeId);
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
 
     // Prefer signed-in identity; otherwise guest
     let username = (name || "").trim();
     if (req.userId) {
       const user = await User.findById(req.userId).select("name email");
-      username = user?.name || user?.email?.split("@")[0] || username || "User";
+      username =
+        user?.name ||
+        user?.email?.split("@")[0] ||
+        username ||
+        "User";
     } else {
       if (!username) username = "Guest";
     }
 
-    // author.userId can be null for guests
+    // separate Review collection
     const review = await Review.create({
       recipeId,
       author: { userId: req.userId || null, username },
       rating,
       comment,
-      // guest: !req.userId, ip: req.ip // optional fields if your schema allows
     });
+
+    // also store inside the Recipe document for quick display
+    if (!Array.isArray(recipe.reviews)) recipe.reviews = [];
+    recipe.reviews.push({
+      rating,
+      comment,
+      author: { userId: req.userId || null, username },
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+    });
+
+    // recalculate average rating
+    const ratings = recipe.reviews
+      .map((rv) =>
+        typeof rv.rating === "number" ? rv.rating : null
+      )
+      .filter((v) => v !== null);
+    recipe.rating =
+      ratings.length > 0
+        ? ratings.reduce((sum, v) => sum + v, 0) / ratings.length
+        : 0;
+
+    await recipe.save();
 
     return res.status(201).json({ message: "Review added", review });
   } catch (err) {
-    return res.status(400).json({ error: errorHandler.getErrorMessage(err) });
+    return res.status(400).json({
+      error: errorHandler.getErrorMessage(err),
+    });
   }
 };
 
 const listReviewsByRecipe = async (req, res) => {
   try {
     const { recipeId } = req.params;
-    const reviews = await Review.find({ recipeId }).sort({ createdAt: -1 });
+    const reviews = await Review.find({ recipeId }).sort({
+      createdAt: -1,
+    });
     res.json(reviews);
   } catch (err) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(err) });
+    res
+      .status(400)
+      .json({ error: errorHandler.getErrorMessage(err) });
   }
 };
 
@@ -707,7 +854,9 @@ const updateReview = async (req, res) => {
     await r.save();
     res.json({ message: "Review updated", review: r });
   } catch (err) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(err) });
+    res
+      .status(400)
+      .json({ error: errorHandler.getErrorMessage(err) });
   }
 };
 
@@ -722,7 +871,9 @@ const deleteReview = async (req, res) => {
     await r.deleteOne();
     res.json({ message: "Review deleted" });
   } catch (err) {
-    res.status(400).json({ error: errorHandler.getErrorMessage(err) });
+    res
+      .status(400)
+      .json({ error: errorHandler.getErrorMessage(err) });
   }
 };
 
