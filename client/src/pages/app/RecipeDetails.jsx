@@ -6,7 +6,17 @@ import { useAuth } from "../../contexts/AuthContext";
 
 export default function RecipeDetails() {
   const { id } = useParams();
-  const { recipes, loading, err, refresh, addReview, toggleBookmark } = useRecipes();
+
+  const {
+    recipes,
+    loading,
+    err,
+    refresh,
+    addReview,
+    addComment,
+    toggleBookmark,
+    PLACEHOLDER,
+  } = useRecipes();
   const { user } = useAuth();
 
   // Ensure we have data when landing directly on this page
@@ -32,43 +42,99 @@ export default function RecipeDetails() {
     return (
       <div className="space-y-3">
         <p>Recipe not found.</p>
-        <Link to="/app" className="text-[var(--lb-yellow)] underline">Back to feed</Link>
+        <Link to="/app" className="text-[var(--lb-yellow)] underline">
+          Back to feed
+        </Link>
       </div>
     );
   }
 
-  const [stars, setStars] = useState(5);
-  const [text, setText] = useState("");
-  const [localErr, setLocalErr] = useState("");
+  // separate state for review + comment
+  const [reviewStars, setReviewStars] = useState(5);
+  const [commentText, setCommentText] = useState("");
+  const [reviewErr, setReviewErr] = useState("");
+  const [commentErr, setCommentErr] = useState("");
 
-  const submit = async (e) => {
+  const submitReview = async (e) => {
     e.preventDefault();
-    setLocalErr("");
+    setReviewErr("");
+
     try {
-      await addReview(r.id, { stars, text });
-      setText("");
-      setStars(5);
+      // 1) send review to backend
+      await addReview(r.id, { stars: reviewStars, text: "" });
+
+      // 2) refresh recipes so this page shows the new rating/review
+      await refresh();
+
+      // 3) notify user
+      alert("Your review was submitted!");
+
+      // 4) reset stars
+      setReviewStars(5);
     } catch (e) {
-      setLocalErr(e.message || "Failed to submit review");
+      setReviewErr(e.message || "Failed to submit review");
     }
   };
 
-  // Normalize reviews from server/local
-  const reviews = (r.reviews || []).map((rev) => ({
-    by:
-      rev.by?.name ||
-      rev.by ||
-      rev.author?.username ||
-      rev.author?.name ||
-      "Anonymous",
-    stars: rev.stars ?? rev.rating ?? 5,
-    text: rev.text ?? rev.comment ?? "",
-  }));
+  const submitComment = async (e) => {
+    e.preventDefault();
+    setCommentErr("");
+
+    if (!commentText.trim()) {
+      setCommentErr("Comment cannot be empty.");
+      return;
+    }
+
+    try {
+      // 1) send comment to backend
+      await addComment(r.id, commentText.trim());
+
+      // 2) refresh recipes so this page shows the new comment
+      await refresh();
+
+      // 3) notify user
+      alert("Your comment was submitted!");
+
+      // 4) reset input
+      setCommentText("");
+    } catch (e) {
+      setCommentErr(e.message || "Failed to submit comment");
+    }
+  };
+
+  // Combine reviews + comments into one list for display
+  const entries = [
+    ...(r.reviews || []).map((rev) => ({
+      by:
+        rev.by?.name ||
+        rev.by ||
+        rev.author?.username ||
+        rev.author?.name ||
+        "Anonymous",
+      stars: rev.stars ?? rev.rating ?? null,
+      text: rev.text ?? rev.comment ?? "",
+    })),
+    ...(r.comments || []).map((c) => ({
+      by: c.name || c.email || "Anonymous",
+      stars:
+        typeof c.rating === "number" && !Number.isNaN(c.rating)
+          ? c.rating
+          : null,
+      text: c.text || "",
+    })),
+  ];
 
   return (
     <section className="grid lg:grid-cols-2 gap-6">
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
-        <img src={r.image} alt={r.title} className="w-full object-cover" />
+        <img
+          src={r.image || PLACEHOLDER}
+          alt={r.title}
+          className="w-full object-cover"
+          onError={(e) => {
+            e.target.src = PLACEHOLDER;
+          }}
+        />
       </div>
 
       <div>
@@ -100,18 +166,19 @@ export default function RecipeDetails() {
           ))}
         </ol>
 
+        {/* ================= REVIEWS ================= */}
         <h3 className="mt-6 font-semibold">Reviews</h3>
 
-        {localErr && (
+        {reviewErr && (
           <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {localErr}
+            {reviewErr}
           </p>
         )}
 
-        <form onSubmit={submit} className="mt-2 flex items-center gap-2">
+        <form onSubmit={submitReview} className="mt-2 flex items-center gap-2">
           <select
-            value={stars}
-            onChange={(e) => setStars(Number(e.target.value))}
+            value={reviewStars}
+            onChange={(e) => setReviewStars(Number(e.target.value))}
             className="rounded-lg border px-2 py-1"
           >
             {[5, 4, 3, 2, 1].map((s) => (
@@ -120,24 +187,46 @@ export default function RecipeDetails() {
               </option>
             ))}
           </select>
+          <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">
+            Submit review
+          </button>
+        </form>
+
+        {/* ================= COMMENTS ================= */}
+        <h3 className="mt-6 font-semibold">Comments</h3>
+
+        {commentErr && (
+          <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {commentErr}
+          </p>
+        )}
+
+        <form onSubmit={submitComment} className="mt-2 flex items-center gap-2">
           <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
             placeholder="Write a comment"
             className="flex-1 rounded-lg border px-3 py-2"
           />
           <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">
-            Submit
+            Submit comment
           </button>
         </form>
 
+        {/* ================= LIST ================= */}
         <ul className="mt-3 space-y-2">
-          {reviews.map((rev, ix) => (
+          {entries.map((rev, ix) => (
             <li key={ix} className="rounded-lg border px-3 py-2">
-              <b>{rev.by}</b> — {rev.stars}★
-              <p className="text-sm">{rev.text}</p>
+              <b>{rev.by}</b>
+              {rev.stars != null ? <> — {rev.stars}★</> : null}
+              {rev.text && <p className="text-sm">{rev.text}</p>}
             </li>
           ))}
+          {entries.length === 0 && (
+            <li className="text-sm text-gray-500">
+              No reviews or comments yet.
+            </li>
+          )}
         </ul>
       </div>
     </section>
