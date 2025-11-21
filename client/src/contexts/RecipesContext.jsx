@@ -11,9 +11,11 @@ const RecipesContext = createContext();
 export const useRecipes = () => useContext(RecipesContext);
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const TOKEN_KEY = "token";
 
-// inline placeholder (works even if you have no file in /public/images)étest
+// ✅ IMPORTANT: must match SignIn/Auth (lb_token), otherwise you get "No token"
+const TOKEN_KEY = "lb_token";
+
+// inline placeholder (works even if you have no file in /public/images)
 const PLACEHOLDER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -46,7 +48,15 @@ const normalizeRecipe = (r) => {
       : r.time || "";
 
   // prefer base64 from API; otherwise use inline placeholder
- const image = `${API}/api/users/recipes/${id}/image`;
+  let image = PLACEHOLDER;
+  if (r?.image?.data) {
+    const ct = String(r.image.contentType || "")
+      .toLowerCase()
+      .startsWith("image/")
+      ? r.image.contentType
+      : "image/jpeg";
+    image = `data:${ct};base64,${r.image.data}`;
+  }
 
   return {
     id,
@@ -60,7 +70,9 @@ const normalizeRecipe = (r) => {
     rating: typeof r.rating === "number" ? r.rating : 0,
     bookmarks: typeof r.bookmarks === "number" ? r.bookmarks : 0,
     bookmarked: !!r.bookmarked,
+    // backend will now return both
     reviews: Array.isArray(r.reviews) ? r.reviews : [],
+    comments: Array.isArray(r.comments) ? r.comments : [],
     creator: r.creator || "",
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -79,7 +91,9 @@ export default function RecipesProvider({ children }) {
       const res = await fetch(`${API}/api/users/recipes`);
       const data = await res.json();
       if (!res.ok)
-        throw new Error(data?.message || data?.error || "Failed to load recipes");
+        throw new Error(
+          data?.message || data?.error || "Failed to load recipes"
+        );
       setRecipes((data || []).map(normalizeRecipe));
     } catch (e) {
       console.error(e);
@@ -94,18 +108,44 @@ export default function RecipesProvider({ children }) {
     refresh();
   }, [refresh]);
 
+  // ⭐ Reviews (ratings) – requires token
   const addReview = async (id, review) => {
     const token = getToken();
+    if (!token) {
+      throw new Error("You must be signed in to add a review.");
+    }
+
     const res = await fetch(`${API}/api/users/recipes/${id}/reviews`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rating: review.stars, comment: review.text || "" }),
+    });
+    const json = await res.json();
+    if (!res.ok)
+      throw new Error(json?.message || json?.error || "Failed to add review");
+    await refresh();
+    return json;
+  };
+
+  // ⭐ Comments – text only, but we still send token if present
+  const addComment = async (id, text) => {
+    const token = getToken();
+    const res = await fetch(`${API}/api/users/recipes/${id}/comments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ rating: review.stars, comment: review.text }),
+      body: JSON.stringify({ text }),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json?.message || json?.error || "Failed to add review");
+    if (!res.ok)
+      throw new Error(
+        json?.message || json?.error || "Failed to add comment"
+      );
     await refresh();
     return json;
   };
@@ -132,11 +172,16 @@ export default function RecipesProvider({ children }) {
       err,
       refresh,
       addReview,
+      addComment,
       toggleBookmark,
       PLACEHOLDER, // export placeholder for onError use
     }),
     [recipes, loading, err, refresh]
   );
 
-  return <RecipesContext.Provider value={value}>{children}</RecipesContext.Provider>;
+  return (
+    <RecipesContext.Provider value={value}>
+      {children}
+    </RecipesContext.Provider>
+  );
 }
