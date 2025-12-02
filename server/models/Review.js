@@ -2,30 +2,12 @@ import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
   {
-    recipeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Recipe",
-      required: true,
-    },
-    author: {
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      username: { type: String },
-    },
-    rating: { type: Number, min: 1, max: 5, required: true },
-    comment: { type: String, default: "" },
-
-    // for the admin “Review Reports” flow
-    // (so an admin can approve/dismiss a report)
-    resolution: {
-      type: String,
-      enum: ["pending", "approved", "dismissed"],
-      default: "pending",
-    },
+    recipe: { type: mongoose.Schema.Types.ObjectId, ref: "Recipe", index: true },
+    user:   { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    stars:  { type: Number, min: 1, max: 5, required: true },
+    text:   { type: String, trim: true }
   },
   { timestamps: true }
 );
 
-reviewSchema.index({ recipeId: 1, createdAt: -1 });
-
-const Review = mongoose.model("Review", reviewSchema);
-export default Review;
+export default mongoose.model("Review", reviewSchema);

@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext"; // from your context
 // expects AuthContext to expose: loginUser({ token, user })
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function SignIn() {
   const nav = useNavigate();

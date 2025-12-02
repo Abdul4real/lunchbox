@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import InputField from "../components/InputField";
 import AuthLayout from "../components/AuthLayout";
 
 export default function Register() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -12,17 +13,50 @@ export default function Register() {
     confirm: "",
   });
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleSubmit = e => {
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = e =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async e => {
     e.preventDefault();
+
     if (form.password !== form.confirm) {
       alert("Passwords do not match!");
       return;
     }
-    console.log("Register:", form);
-  };
 
-  const navigate = useNavigate(); //
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Registration failed");
+        setLoading(false);
+        return;
+      }
+
+      // Success!
+      alert("Account created successfully!");
+      navigate("/signin");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AuthLayout
@@ -74,9 +108,10 @@ export default function Register() {
 
         <button
           type="submit"
-          className="w-full py-2 rounded-xl bg-[var(--lb-yellow)] font-semibold text-black hover:opacity-90 transition"
+          disabled={loading}
+          className="w-full py-2 rounded-xl bg-[var(--lb-yellow)] font-semibold text-black hover:opacity-90 transition disabled:opacity-50"
         >
-          Register
+          {loading ? "Creating account..." : "Register"}
         </button>
       </form>
     </AuthLayout>
