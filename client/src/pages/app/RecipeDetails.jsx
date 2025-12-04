@@ -1,65 +1,115 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useState } from "react";
 import { useRecipes } from "../../contexts/RecipesContext";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext"; // optional if you have user info
 
 export default function RecipeDetails() {
   const { id } = useParams();
   const { recipes, addReview, toggleBookmark } = useRecipes();
-  const { user } = useAuth();
-  const r = recipes.find(x => String(x.id) === id);
+  const { user } = useAuth(); // optional if you track logged-in user
+
+  // Find the recipe in context
+  const r = recipes.find(x => x._id === id);
+
+  // Safe defaults to prevent errors
+  const ingredients = r?.ingredients || [];
+  const steps = r?.steps || [];
+  const reviews = r?.reviews || [];
+  const bookmarked = r?.bookmarked || false;
+
   const [stars, setStars] = useState(5);
   const [text, setText] = useState("");
 
-  if (!r) return <p>Recipe not found.</p>;
+  if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
 
-  const submit = (e) => {
+  // Submit a new review
+  const submitReview = (e) => {
     e.preventDefault();
-    addReview(r.id, { by: user?.name || "You", stars, text });
-    setText(""); setStars(5);
+    if (!text) return;
+    addReview(r._id, { by: user?.name || "You", stars, text });
+    setText("");
+    setStars(5);
   };
 
   return (
-    <section className="grid lg:grid-cols-2 gap-6">
+    <section className="grid lg:grid-cols-2 gap-6 max-w-4xl mx-auto p-5">
+      {/* Recipe Image */}
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
-        <img src={r.image} alt={r.title} className="w-full object-cover" />
+        <img
+          src={r.image}
+          alt={r.title}
+          className="w-full object-cover"
+          onError={e => (e.target.src = "/placeholder.png")}
+        />
       </div>
 
+      {/* Recipe Details */}
       <div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-extrabold">{r.title}</h1>
-          <button onClick={()=>toggleBookmark(r.id)} className="px-3 py-1 rounded-lg border">
-            {r.bookmarked ? "Unbookmark" : "Bookmark"}
+          <button
+            onClick={() => toggleBookmark(r._id)}
+            className="px-3 py-1 rounded-lg border"
+          >
+            {bookmarked ? "Unbookmark" : "Bookmark"}
           </button>
         </div>
-        <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">⏱ {r.time} · ⭐ {r.rating}</p>
 
+        <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
+          ⏱ {r.time || "N/A"} · ⭐ {r.rating || "N/A"}
+        </p>
+
+        {/* Ingredients */}
         <h3 className="mt-4 font-semibold">Ingredients</h3>
-        <ul className="list-disc ml-5 text-sm">{r.ingredients.map((i,ix)=><li key={ix}>{i}</li>)}</ul>
+        <ul className="list-disc ml-5 text-sm">
+          {ingredients.length
+            ? ingredients.map((i, ix) => <li key={ix}>{i}</li>)
+            : <li>No ingredients listed.</li>}
+        </ul>
 
+        {/* Steps */}
         <h3 className="mt-4 font-semibold">Steps</h3>
-        <ol className="list-decimal ml-5 text-sm space-y-1">{r.steps.map((s,ix)=><li key={ix}>{s}</li>)}</ol>
+        <ol className="list-decimal ml-5 text-sm space-y-1">
+          {steps.length
+            ? steps.map((s, ix) => <li key={ix}>{s}</li>)
+            : <li>No steps listed.</li>}
+        </ol>
 
+        {/* Add Review */}
         <h3 className="mt-6 font-semibold">Reviews</h3>
-        <form onSubmit={submit} className="mt-2 flex items-center gap-2">
-          <select value={stars} onChange={e=>setStars(Number(e.target.value))} className="rounded-lg border px-2 py-1">
-            {[5,4,3,2,1].map(s=> <option key={s} value={s}>{s}★</option>)}
+        <form onSubmit={submitReview} className="mt-2 flex items-center gap-2">
+          <select
+            value={stars}
+            onChange={e => setStars(Number(e.target.value))}
+            className="rounded-lg border px-2 py-1"
+          >
+            {[5, 4, 3, 2, 1].map(s => (
+              <option key={s} value={s}>{s}★</option>
+            ))}
           </select>
-          <input value={text} onChange={e=>setText(e.target.value)} placeholder="Write a comment"
-                 className="flex-1 rounded-lg border px-3 py-2" />
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Write a comment"
+            className="flex-1 rounded-lg border px-3 py-2"
+          />
           <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">Submit</button>
         </form>
 
+        {/* Existing Reviews */}
         <ul className="mt-3 space-y-2">
-          {r.reviews.map((rev,ix)=>(
-            <li key={ix} className="rounded-lg border px-3 py-2">
-              <b>{rev.by}</b> — {rev.stars}★
-              <p className="text-sm">{rev.text}</p>
-            </li>
-          ))}
+          {reviews.length
+            ? reviews.map((rev, ix) => (
+                <li key={ix} className="rounded-lg border px-3 py-2">
+                  <b>{rev.by}</b> — {rev.stars}★
+                  <p className="text-sm">{rev.text}</p>
+                </li>
+              ))
+            : <p>No reviews yet.</p>}
         </ul>
       </div>
     </section>
   );
 }
+

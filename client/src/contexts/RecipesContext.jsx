@@ -1,49 +1,82 @@
-import React from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 
 const RecipesContext = createContext();
 export const useRecipes = () => useContext(RecipesContext);
 
-const seed = [
-  { id: 101, title: "Jollof Rice", time: "25 min", image: "/images/jollof.jpg",
-    ingredients: ["Rice","Tomato","Pepper","Stock"], steps: ["Prep","Cook sauce","Steam rice"], rating: 4.8,
-    bookmarks: 0, tags: ["Dinner","African"], reviews: [{by:"Lila",stars:5,text:"So good!"}] },
-  { id: 102, title: "Pasta Alfredo", time: "20 min", image: "/images/alfredo.jpg",
-    ingredients: ["Pasta","Cream","Parmesan","Butter"], steps: ["Boil pasta","Make sauce","Combine"], rating: 4.7,
-    bookmarks: 0, tags: ["Lunch","Italian"], reviews: [] },
-    { id: 102, title: "Pasta Alfredo", time: "20 min", image: "/images/alfredo.jpg",
-    ingredients: ["Pasta","Cream","Parmesan","Butter"], steps: ["Boil pasta","Make sauce","Combine"], rating: 4.7,
-    bookmarks: 0, tags: ["Lunch","Italian"], reviews: [] },
-    { id: 103, title: "Sushi Rolls", time: "40 min", image: "/images/sushi.jpg",bookmarked:true,
-    ingredients: ["Sushi Rice","Nori","Fish","Vegetables"], steps: ["Prepare rice","Assemble rolls","Slice"], rating: 4.9,
-    bookmarks: 1, tags: ["Dinner","Japanese"], reviews: [{by:"Kenji",stars:5,text:"Authentic taste!"}] },
-    { id: 104, title: "Tacos", time: "15 min", image: "/images/tacos.jpg",bookmarked:true,
-    ingredients: ["Tortillas","Meat","Lettuce","Cheese"], steps: ["Cook meat","Assemble tacos"], rating: 4.6,
-    bookmarks: 1, tags: ["Lunch","Mexican"], reviews: [{by:"Maria",stars:4,text:"Very tasty!"}] },
-    { id: 105, title: "Caesar Salad", time: "10 min", image: "/images/caesar.jpg",
-    ingredients: ["Romaine Lettuce","Croutons","Caesar Dressing","Parmesan"], steps: ["Chop lettuce","Add toppings","Toss"], rating: 4.5,
-    bookmarks: 0, tags: ["Salad","Appetizer"], reviews: [] },
-    
-];
-
 export default function RecipesProvider({ children }) {
-  const [recipes, setRecipes] = useState(seed);
+  const [recipes, setRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const addRecipe = (r) =>
-    setRecipes(rs => [{ ...r, id: Date.now(), reviews: [], bookmarks: 0, rating: 0 }, ...rs]);
+  // Fetch recipes from backend
+  useEffect(() => {
+    async function fetchRecipes() {
+      try {
+        const res = await fetch("http://localhost:5000/api/recipes");
+        if (!res.ok) throw new Error("Failed to fetch recipes");
+        const data = await res.json();
 
+        // If backend sends { total, page, limit, data }
+        const recipesData = data.data || data;
+
+        setRecipes(recipesData);
+      } catch (err) {
+        console.error("Error fetching recipes:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRecipes();
+  }, []);
+
+  // Add a recipe locally (after creation on backend)
+  const addRecipe = (recipe) =>
+    setRecipes((rs) => [recipe, ...rs]);
+
+  // Update recipe locally
   const updateRecipe = (id, patch) =>
-    setRecipes(rs => rs.map(r => (r.id === id ? { ...r, ...patch } : r)));
+    setRecipes((rs) =>
+      rs.map((r) => (r._id === id ? { ...r, ...patch } : r))
+    );
 
+  // Delete recipe locally
   const deleteRecipe = (id) =>
-    setRecipes(rs => rs.filter(r => r.id !== id));
+    setRecipes((rs) => rs.filter((r) => r._id !== id));
 
+  // Add review locally
   const addReview = (id, review) =>
-    setRecipes(rs => rs.map(r => r.id === id ? { ...r, reviews: [review, ...r.reviews] } : r));
+    setRecipes((rs) =>
+      rs.map((r) =>
+        r._id === id ? { ...r, reviews: [review, ...(r.reviews || [])] } : r
+      )
+    );
 
+  // Toggle bookmark locally
   const toggleBookmark = (id) =>
-    setRecipes(rs => rs.map(r => r.id === id ? { ...r, bookmarks: (r.bookmarked ? r.bookmarks - 1 : r.bookmarks + 1), bookmarked: !r.bookmarked } : r));
+    setRecipes((rs) =>
+      rs.map((r) =>
+        r._id === id ? { ...r, bookmarked: !r.bookmarked } : r
+      )
+    );
 
-  const value = useMemo(() => ({ recipes, addRecipe, updateRecipe, deleteRecipe, addReview, toggleBookmark }), [recipes]);
-  return <RecipesContext.Provider value={value}>{children}</RecipesContext.Provider>;
+  const value = useMemo(
+    () => ({
+      recipes,
+      loading,
+      error,
+      addRecipe,
+      updateRecipe,
+      deleteRecipe,
+      addReview,
+      toggleBookmark,
+    }),
+    [recipes, loading, error]
+  );
+
+  return (
+    <RecipesContext.Provider value={value}>
+      {children}
+    </RecipesContext.Provider>
+  );
 }
