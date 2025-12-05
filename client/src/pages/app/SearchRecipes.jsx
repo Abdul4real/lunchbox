@@ -1,23 +1,46 @@
-import React from "react";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function SearchRecipes() {
   const { recipes = [] } = useRecipes();
+  const { user } = useAuth();
+
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("All");
 
-  // Extract all tags safely
-  const tags = useMemo(() => {
-    const allTags = recipes.flatMap(r => r.tags || []);
-    return ["All", ...new Set(allTags)];
+  // Build available filters: All, My Recipes, then all tags
+  const tagFilters = useMemo(() => {
+    const tags = recipes.flatMap((r) => r.tags || []);
+    return ["All", "My Recipes", ...new Set(tags)];
   }, [recipes]);
 
+  // Main filtering logic
   const filtered = recipes.filter((r) => {
-    const matchesTag = tag === "All" || (r.tags || []).includes(tag);
     const matchesSearch = r.title?.toLowerCase().includes(q.toLowerCase());
-    return matchesTag && matchesSearch;
+
+    // Correct logged-in user's ID
+    const userId = user?.id;
+
+    // Normalize recipe author
+    const authorId =
+      typeof r.author === "string"
+        ? r.author
+        : r.author?._id || r.author?.id;
+
+    // My Recipes filter
+    const matchesOwner =
+      tag !== "My Recipes" ||
+      (userId && authorId && String(userId) === String(authorId));
+
+    // Tag filter
+    const matchesTag =
+      tag === "All" ||
+      tag === "My Recipes" ||
+      (r.tags || []).includes(tag);
+
+    return matchesSearch && matchesTag && matchesOwner;
   });
 
   return (
@@ -25,29 +48,34 @@ export default function SearchRecipes() {
       <h1 className="text-2xl font-extrabold">Search & Filter</h1>
 
       <div className="mt-4 flex gap-3">
+        {/* Search Box */}
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search keyword"
+          placeholder="Search recipes..."
           className="rounded-xl border px-3 py-2"
         />
 
+        {/* Dropdown */}
         <select
           value={tag}
           onChange={(e) => setTag(e.target.value)}
           className="rounded-xl border px-3 py-2"
         >
-          {tags.map((t) => (
-            <option key={t}>{t}</option>
+          {tagFilters.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
         </select>
       </div>
 
+      {/* Recipe List */}
       <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((r) => (
           <Link
             key={r._id}
-            to={`/app/recipe/${r._id}`}   // FIXED
+            to={`/app/recipe/${r._id}`}
             className="rounded-2xl border p-4 hover:shadow-sm"
           >
             <p className="font-semibold">{r.title}</p>

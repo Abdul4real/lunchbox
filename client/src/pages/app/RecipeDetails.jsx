@@ -1,32 +1,42 @@
-
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
-import { useAuth } from "../../contexts/AuthContext"; // optional if you have user info
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function RecipeDetails() {
   const { id } = useParams();
   const { recipes, addReview, toggleBookmark } = useRecipes();
-  const { user } = useAuth(); // optional if you track logged-in user
+  const { user } = useAuth();
 
-  // Find the recipe in context
-  const r = recipes.find(x => x._id === id);
+  const r = recipes.find((x) => x._id === id);
+  if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
 
-  // Safe defaults to prevent errors
-  const ingredients = r?.ingredients || [];
-  const steps = r?.steps || [];
-  const reviews = r?.reviews || [];
-  const bookmarked = r?.bookmarked || false;
+  // ---- OWNER CHECK ----
+  // Try to get a user id regardless of property name
+  const userId = user?._id || user?.id;
+
+  // Try to get author id whether it's a string or object
+  let authorId = r.author;
+  if (authorId && typeof authorId === "object") {
+    authorId = authorId._id || authorId.id;
+  }
+
+  const isOwner =
+    userId && authorId && String(userId) === String(authorId);
+
+  // Safe defaults
+  const ingredients = r.ingredients || [];
+  const steps = r.steps || [];
+  const reviews = r.reviews || [];
+  const bookmarked = r.bookmarked || false;
 
   const [stars, setStars] = useState(5);
   const [text, setText] = useState("");
 
-  if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
-
-  // Submit a new review
   const submitReview = (e) => {
     e.preventDefault();
-    if (!text) return;
+    if (!text.trim()) return;
+
     addReview(r._id, { by: user?.name || "You", stars, text });
     setText("");
     setStars(5);
@@ -40,24 +50,34 @@ export default function RecipeDetails() {
           src={r.image}
           alt={r.title}
           className="w-full object-cover"
-          onError={e => (e.target.src = "/placeholder.png")}
+          onError={(e) => (e.target.src = "/placeholder.png")}
         />
       </div>
 
       {/* Recipe Details */}
       <div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h1 className="text-2xl font-extrabold">{r.title}</h1>
+
           <button
             onClick={() => toggleBookmark(r._id)}
             className="px-3 py-1 rounded-lg border"
           >
             {bookmarked ? "Unbookmark" : "Bookmark"}
           </button>
+
+          {isOwner && (
+            <Link
+              to={`/app/recipe/${r._id}/edit`}
+              className="px-3 py-1 rounded-lg border bg-[var(--lb-yellow)] font-semibold"
+            >
+              Edit
+            </Link>
+          )}
         </div>
 
         <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
-          ⏱ {r.time || "N/A"} · ⭐ {r.rating || "N/A"}
+          ⏱ {r.time || "N/A"} · ⭐ {r.ratingAvg?.toFixed?.(1) || "N/A"}
         </p>
 
         {/* Ingredients */}
@@ -81,20 +101,24 @@ export default function RecipeDetails() {
         <form onSubmit={submitReview} className="mt-2 flex items-center gap-2">
           <select
             value={stars}
-            onChange={e => setStars(Number(e.target.value))}
+            onChange={(e) => setStars(Number(e.target.value))}
             className="rounded-lg border px-2 py-1"
           >
-            {[5, 4, 3, 2, 1].map(s => (
-              <option key={s} value={s}>{s}★</option>
+            {[5, 4, 3, 2, 1].map((s) => (
+              <option key={s} value={s}>
+                {s}★
+              </option>
             ))}
           </select>
           <input
             value={text}
-            onChange={e => setText(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Write a comment"
             className="flex-1 rounded-lg border px-3 py-2"
           />
-          <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">Submit</button>
+          <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">
+            Submit
+          </button>
         </form>
 
         {/* Existing Reviews */}
@@ -112,4 +136,3 @@ export default function RecipeDetails() {
     </section>
   );
 }
-

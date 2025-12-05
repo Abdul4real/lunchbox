@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -6,28 +6,36 @@ export const useAuth = () => useContext(AuthContext);
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
+  // Load user on refresh
+  useEffect(() => {
+    const savedUser = localStorage.getItem("lb_user");
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
   // Login after /auth/login
   const loginUser = ({ token, user }) => {
-    // store token
     localStorage.setItem("lb_token", token);
-
-    // store user object exactly as backend returns it
+    localStorage.setItem("lb_user", JSON.stringify(user));
     setUser(user);
   };
 
   const registerUser = ({ token, user }) => {
     localStorage.setItem("lb_token", token);
+    localStorage.setItem("lb_user", JSON.stringify(user));
     setUser(user);
   };
 
-  // Special admin login (if needed)
   const loginAdmin = ({ token, user }) => {
     localStorage.setItem("lb_token", token);
+    localStorage.setItem("lb_user", JSON.stringify(user));
     setUser(user);
   };
 
   const logout = () => {
     localStorage.removeItem("lb_token");
+    localStorage.removeItem("lb_user");
     setUser(null);
   };
 

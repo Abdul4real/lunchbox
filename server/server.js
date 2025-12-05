@@ -14,7 +14,7 @@ import fs from "fs";
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import recipesRoutes from "./routes/recipes.routes.js";
-import reviewsRoutes from "./routes/reviews.routes.js";
+//import reviewsRoutes from "./routes/reviews.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 
@@ -66,7 +66,7 @@ app.use(
 );
 // --- Routes ---
 app.use("/api/auth", authRoutes);
-app.use("/api/users", usersRoutes);
+app.use("/api/user", usersRoutes);
 app.use("/api/recipes", recipesRoutes);
 
 // Nested Reviews Route
@@ -76,7 +76,7 @@ app.use(
     if (req.params.id) req.recipeId = req.params.id;
     next();
   },
-  reviewsRoutes
+  //reviewsRoutes
 );
 
 app.use("/api/reports", reportsRoutes);

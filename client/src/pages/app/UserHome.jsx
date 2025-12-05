@@ -40,10 +40,6 @@ export default function UserHome() {
                 <Link to={`/app/recipe/${r._id}`} className="px-3 py-1 rounded-lg border">
                   View
                 </Link>
-
-                <Link to={`/app/recipe/${r._id}/edit`} className="px-3 py-1 rounded-lg border">
-                  Edit
-                </Link>
               </div>
             </div>
           </article>
