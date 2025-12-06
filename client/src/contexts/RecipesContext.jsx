@@ -3,25 +3,24 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from "
 const RecipesContext = createContext();
 export const useRecipes = () => useContext(RecipesContext);
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 export default function RecipesProvider({ children }) {
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch recipes from backend
+  // -------------------------
+  // Fetch Recipes
+  // -------------------------
   useEffect(() => {
     async function fetchRecipes() {
       try {
-        const res = await fetch("http://localhost:5000/api/recipes");
-        if (!res.ok) throw new Error("Failed to fetch recipes");
+        const res = await fetch(`${API}/api/recipes`);
         const data = await res.json();
-
-        // If backend sends { total, page, limit, data }
-        const recipesData = data.data || data;
-
-        setRecipes(recipesData);
+        setRecipes(data.data || data);
       } catch (err) {
-        console.error("Error fetching recipes:", err);
+        console.error(err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -30,35 +29,107 @@ export default function RecipesProvider({ children }) {
     fetchRecipes();
   }, []);
 
-  // Add a recipe locally (after creation on backend)
+  // -------------------------
+  // Create Recipe (works)
+  // -------------------------
   const addRecipe = (recipe) =>
     setRecipes((rs) => [recipe, ...rs]);
 
-  // Update recipe locally
-  const updateRecipe = (id, patch) =>
-    setRecipes((rs) =>
-      rs.map((r) => (r._id === id ? { ...r, ...patch } : r))
-    );
+  // -------------------------
+  // UPDATE RECIPE (now calls backend)
+  // -------------------------
+  const updateRecipe = async (id, patch) => {
+    try {
+      const res = await fetch(`${API}/api/recipes/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("lb_token")}`
+        },
+        body: JSON.stringify(patch),
+      });
 
-  // Delete recipe locally
-  const deleteRecipe = (id) =>
-    setRecipes((rs) => rs.filter((r) => r._id !== id));
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated.message);
 
-  // Add review locally
-  const addReview = (id, review) =>
-    setRecipes((rs) =>
-      rs.map((r) =>
-        r._id === id ? { ...r, reviews: [review, ...(r.reviews || [])] } : r
-      )
-    );
+      setRecipes((rs) =>
+        rs.map((r) => (r._id === id ? updated : r))
+      );
+    } catch (err) {
+      console.error("UPDATE FAILED:", err);
+    }
+  };
 
-  // Toggle bookmark locally
-  const toggleBookmark = (id) =>
-    setRecipes((rs) =>
-      rs.map((r) =>
-        r._id === id ? { ...r, bookmarked: !r.bookmarked } : r
-      )
-    );
+  // -------------------------
+  // DELETE RECIPE (now calls backend)
+  // -------------------------
+  const deleteRecipe = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/recipes/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+
+      setRecipes((rs) => rs.filter((r) => r._id !== id));
+    } catch (err) {
+      console.error("DELETE FAILED:", err);
+    }
+  };
+
+  // -------------------------
+  // ADD REVIEW (now calls backend)
+  // -------------------------
+  const addReview = async (id, review) => {
+    try {
+      const res = await fetch(`${API}/api/recipes/${id}/review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
+        },
+        body: JSON.stringify(review),
+      });
+
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated.message);
+
+      setRecipes((rs) =>
+        rs.map((r) => (r._id === id ? updated : r))
+      );
+    } catch (err) {
+      console.error("REVIEW FAILED:", err);
+    }
+  };
+
+  // -------------------------
+  // BOOKMARK (now calls backend)
+  // -------------------------
+  const toggleBookmark = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/recipes/${id}/bookmark`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      // Local mirror only
+      setRecipes((rs) =>
+        rs.map((r) =>
+          r._id === id ? { ...r, bookmarked: !r.bookmarked } : r
+        )
+      );
+    } catch (err) {
+      console.error("BOOKMARK FAILED:", err);
+    }
+  };
 
   const value = useMemo(
     () => ({

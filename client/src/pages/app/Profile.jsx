@@ -5,15 +5,12 @@ import { useNavigate } from "react-router-dom";
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Profile() {
-  const { user, logout, setUser } = useAuth(); 
+  const { user, logout } = useAuth();   // ✅ removed setUser
   const nav = useNavigate();
 
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
 
-  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
@@ -22,68 +19,75 @@ export default function Profile() {
     Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
   };
 
-  // -------------------------
-  // Use fetch with try/catch and always handle empty body
-const handleResponse = async (res) => {
-  let data = {};
-  try { data = await res.json(); } catch {}
-  if (!res.ok) throw new Error(data.message || "Request failed");
-  return data;
-};
+  // Safely parse fetch responses
+  const handleResponse = async (res) => {
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {}
+    if (!res.ok) throw new Error(data.message || "Request failed");
+    return data;
+  };
 
+  // CHANGE PASSWORD
+  const changePw = async (e) => {
+    e.preventDefault();
+    setErr("");
+    setMsg("");
 
+    if (pw1 !== pw2) {
+      setErr("Passwords do not match");
+      return;
+    }
 
-// CHANGE PASSWORD
-const changePw = async (e) => {
-  e.preventDefault();
-  setErr(""); setMsg("");
+    try {
+      const res = await fetch(`${API}/api/user/password`, {
+        method: "PATCH",
+        headers: authHeader,
+        body: JSON.stringify({ password: pw1 }),
+      });
 
-  if (pw1 !== pw2) {
-    setErr("Passwords do not match");
-    return;
-  }
+      await handleResponse(res);
+      setMsg("Password changed successfully");
+      setPw1("");
+      setPw2("");
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
 
-  try {
-    const res = await fetch(`${API}/api/user/password`, {
-      method: "PATCH",
-      headers: authHeader,
-      body: JSON.stringify({ password: pw1 }),
-    });
+  // DELETE ACCOUNT
+  const del = async () => {
+    if (!confirm("Delete your account permanently?")) return;
 
-    await handleResponse(res);
-    setMsg("Password changed successfully");
-    setPw1(""); setPw2("");
-  } catch (e) {
-    setErr(e.message);
-  }
-};
+    try {
+      const res = await fetch(`${API}/api/user`, {
+        method: "DELETE",
+        headers: authHeader,
+      });
 
-// DELETE ACCOUNT
-const del = async () => {
-  if (!confirm("Delete your account permanently?")) return;
-  try {
-    const res = await fetch(`${API}/api/user`, {
-      method: "DELETE",
-      headers: authHeader,
-    });
-    await handleResponse(res);
-    logout();
-    nav("/");
-  } catch (e) {
-    setErr(e.message);
-  }
-};
+      await handleResponse(res);
+      logout();
+      nav("/");
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
 
   return (
     <section className="grid lg:grid-cols-2 gap-6">
-      {/* Status Messages */}
       {(msg || err) && (
-        <div className={`p-3 rounded-xl ${err ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+        <div
+          className={`p-3 rounded-xl ${
+            err ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+          }`}
+        >
           {err || msg}
         </div>
       )}
 
-          <div className="rounded-2xl border p-6">
+      {/* PERSONAL INFO */}
+      <div className="rounded-2xl border p-6">
         <h2 className="font-semibold text-lg">Personal Info</h2>
 
         <div className="mt-3 space-y-3">
@@ -111,9 +115,10 @@ const del = async () => {
         </div>
       </div>
 
-      {/* CHANGE PASSWORD */}
+      {/* PASSWORD SECTION */}
       <div className="rounded-2xl border p-6">
         <h2 className="font-semibold text-lg">Change Password</h2>
+
         <form onSubmit={changePw} className="mt-3 space-y-3">
           <input
             type="password"
@@ -131,12 +136,13 @@ const del = async () => {
             className="w-full rounded-xl border px-3 py-2"
           />
 
-          <button className="px-4 py-2 rounded-xl border">
-            Update Password
-          </button>
+          <button className="px-4 py-2 rounded-xl border">Update Password</button>
         </form>
 
-        <button onClick={del} className="mt-4 px-4 py-2 rounded-xl border text-red-600">
+        <button
+          onClick={del}
+          className="mt-4 px-4 py-2 rounded-xl border text-red-600"
+        >
           Delete Account
         </button>
       </div>

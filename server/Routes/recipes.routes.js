@@ -1,25 +1,3 @@
-// import { Router } from "express";
-// import { requireAuth } from "../middlewares/auth.js";
-// import {
-//   createRecipe,
-//   listRecipes,
-//   getRecipe,
-//   updateRecipe,
-//   deleteRecipe,
-//   toggleBookmark,
-// } from "../controllers/recipes.controller.js";
-// import { upload } from "../middlewares/upload.js";
-
-// const router = Router();
-
-// router.get("/", listRecipes);
-// router.get("/:id", getRecipe);
-// router.patch("/:id", requireAuth, updateRecipe);
-// router.delete("/:id", requireAuth, deleteRecipe);
-// router.post("/:id/bookmark", requireAuth, toggleBookmark);
-// router.post("/", requireAuth, upload.single("image"), createRecipe);
-
-// export default router;
 import { Router } from "express"; 
 import mongoose from "mongoose";
 import { requireAuth } from "../middlewares/auth.js";
