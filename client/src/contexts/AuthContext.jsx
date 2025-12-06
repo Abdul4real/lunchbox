@@ -4,31 +4,51 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  // Load user from localStorage (if any)
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("lb_user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Login after /auth/login
-  const loginUser = ({ token, user }) => {
-    // store token
-    localStorage.setItem("lb_token", token);
-
-    // store user object exactly as backend returns it
-    setUser(user);
+  // ---- COMMON HELPERS ----
+  const saveSession = ({ token, user }) => {
+    if (token) {
+      localStorage.setItem("lb_token", token);
+    }
+    if (user) {
+      localStorage.setItem("lb_user", JSON.stringify(user));
+      setUser(user);
+    }
   };
 
-  const registerUser = ({ token, user }) => {
-    localStorage.setItem("lb_token", token);
-    setUser(user);
+  const clearSession = () => {
+    localStorage.removeItem("lb_token");
+    localStorage.removeItem("lb_user");
+    setUser(null);
   };
 
-  // Special admin login (if needed)
-  const loginAdmin = ({ token, user }) => {
-    localStorage.setItem("lb_token", token);
-    setUser(user);
+  // ---- NORMAL USER LOGIN / REGISTER ----
+  // expected payload: { token, user }
+  const loginUser = (payload) => {
+    saveSession(payload);
+  };
+
+  const registerUser = (payload) => {
+    saveSession(payload);
+  };
+
+  // ---- ADMIN LOGIN ----
+  // expected payload: { token, user }  (user will be the admin object)
+  const loginAdmin = (payload) => {
+    saveSession(payload);
   };
 
   const logout = () => {
-    localStorage.removeItem("lb_token");
-    setUser(null);
+    clearSession();
   };
 
   const isAdmin = user?.role === "admin";
@@ -36,7 +56,15 @@ export default function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthed, isAdmin, loginUser, registerUser, loginAdmin, logout }}
+      value={{
+        user,
+        isAuthed,
+        isAdmin,
+        loginUser,
+        registerUser,
+        loginAdmin,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

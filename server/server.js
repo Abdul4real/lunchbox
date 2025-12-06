@@ -16,7 +16,7 @@ import usersRoutes from "./routes/users.routes.js";
 import recipesRoutes from "./routes/recipes.routes.js";
 import reviewsRoutes from "./routes/reviews.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
-import adminRoutes from "./routes/admin.routes.js";
+import adminRoutes from "./Routes/admin.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
