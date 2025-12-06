@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import { seedAdmins } from "../utils/seedAdmins.js";
+
 
 dotenv.config(); // loads .env automatically
 
@@ -14,6 +16,7 @@ const connectDB = async () => {
     });
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+     await seedAdmins();
   } catch (error) {
     console.error(`❌ MongoDB Error: ${error.message}`);
     process.exit(1);
