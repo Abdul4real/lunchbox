@@ -6,7 +6,7 @@ const FE_BASE = "https://lunchbox-wlgs.vercel.app";
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "");
 
 export default function RecipeCard({ id, image, title, meta, cta = "View Recipe" }) {
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
   let fixedImage = image;
 
@@ -54,7 +54,7 @@ export default function RecipeCard({ id, image, title, meta, cta = "View Recipe"
 
         {id && (
           <button
-            onClick={() => nav(`/recipes/${id}`)}
+            onClick={() => navigate("/signin")}
             className="mt-2 text-sm font-medium text-gray-700 dark:text-neutral-200 hover:opacity-80"
           >
             {cta}
