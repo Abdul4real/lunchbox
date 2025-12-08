@@ -23,7 +23,7 @@ export default function Header() {
           <span className="text-2xl font-extrabold tracking-tight">LunchBox</span>
         </div>
 
-        {/* search */}
+        {/* search 
         <div className="flex-1 max-w-xl mx-6 hidden md:flex">
           <label className="w-full relative">
             <input
@@ -33,7 +33,7 @@ export default function Header() {
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
           </label>
-        </div> 
+        </div> */}
         
 
         {/* actions */}
