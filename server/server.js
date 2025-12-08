@@ -58,12 +58,24 @@ app.use(
   })
 );
 // CORS for API routes
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,      // your Vercel site
+  "http://localhost:5173"       // dev mode
+];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
+
 // --- Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/user", usersRoutes);
