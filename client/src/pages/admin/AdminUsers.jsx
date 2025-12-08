@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function AdminUsers() {
   const [rows, setRows] = useState([]);
@@ -32,7 +32,7 @@ export default function AdminUsers() {
   const toggleSuspend = async (id) => {
     try {
       const res = await axios.patch(
-        `${API_BASE}/api/admin/users/${id}/suspend`
+        `${API_BASE}/admin/users/${id}/suspend`
       );
       const updated = res.data.user;
 
@@ -53,7 +53,7 @@ export default function AdminUsers() {
   const remove = async (id) => {
     if (!window.confirm("Are you sure you want to remove this user?")) return;
     try {
-      await axios.delete(`${API_BASE}/api/admin/users/${id}`);
+      await axios.delete(`${API_BASE}/admin/users/${id}`);
       setRows((rs) => rs.filter((u) => String(u._id) !== String(id)));
     } catch (err) {
       console.error("Failed to remove user:", err);

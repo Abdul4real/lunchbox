@@ -1,11 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 export default function RecipeCard({ id, image, title, meta, cta = "View Recipe" }) {
   const nav = useNavigate();
-
+//new code
   // Fix the image URL
   const fixedImage = image?.startsWith("http")
     ? image

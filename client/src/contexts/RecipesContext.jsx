@@ -3,7 +3,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from "
 const RecipesContext = createContext();
 export const useRecipes = () => useContext(RecipesContext);
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 export default function RecipesProvider({ children }) {
   const [recipes, setRecipes] = useState([]);
@@ -40,7 +40,7 @@ export default function RecipesProvider({ children }) {
   // -------------------------
   const updateRecipe = async (id, patch) => {
     try {
-      const res = await fetch(`${API}/api/recipes/${id}`, {
+      const res = await fetch(`${API}/recipes/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export default function RecipesProvider({ children }) {
   // -------------------------
   const deleteRecipe = async (id) => {
     try {
-      const res = await fetch(`${API}/api/recipes/${id}`, {
+      const res = await fetch(`${API}/recipes/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
@@ -85,7 +85,7 @@ export default function RecipesProvider({ children }) {
   // -------------------------
   const addReview = async (id, review) => {
     try {
-      const res = await fetch(`${API}/api/recipes/${id}/review`, {
+      const res = await fetch(`${API}/recipes/${id}/review`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,7 +110,7 @@ export default function RecipesProvider({ children }) {
   // -------------------------
   const toggleBookmark = async (id) => {
     try {
-      const res = await fetch(`${API}/api/recipes/${id}/bookmark`, {
+      const res = await fetch(`${API}/recipes/${id}/bookmark`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("lb_token")}`,
