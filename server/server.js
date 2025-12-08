@@ -21,17 +21,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // ----------------------------
-// SERVE UPLOADS DIRECTORY
+// ALLOWED ORIGINS
+// ----------------------------
+const allowedOrigins = [
+  "https://lunchbox-wlgs.vercel.app",
+  "http://localhost:5173",
+];
+
+// ----------------------------
+// SERVE UPLOADS WITH CORS
 // ----------------------------
 const uploadPath = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
 
-// This must run BEFORE CORS so static files always load
 app.use(
   "/uploads",
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
   express.static(uploadPath, {
     setHeaders: (res) => {
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Access-Control-Allow-Origin", "*"); // Required for image loading
     },
   })
 );
@@ -44,24 +58,19 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 // ----------------------------
-// RATE LIMITING
+// RATE LIMITER
 // ----------------------------
 app.use(
   rateLimit({
     windowMs: 60 * 1000,
     max: 120,
-    message: "Too many requests from this IP, please try again after a minute.",
+    message: "Too many requests from this IP. Try again later.",
   })
 );
 
 // ----------------------------
-// FIXED CORS CONFIG
+// GLOBAL CORS FOR ALL API ROUTES
 // ----------------------------
-const allowedOrigins = [
-  "https://lunchbox-wlgs.vercel.app",
-  "http://localhost:5173",
-];
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -98,6 +107,6 @@ const PORT = process.env.PORT || 5000;
 
 connectDB(process.env.MONGO_URI).then(() => {
   app.listen(PORT, () =>
-    console.log(`✓ API listening on http://localhost:${PORT}`)
+    console.log(`✓ API running on http://localhost:${PORT}`)
   );
 });
