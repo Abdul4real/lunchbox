@@ -57,10 +57,10 @@ app.use(
     },
   })
 );
-// CORS for API routes
+/// CORS Configuration
 const allowedOrigins = [
-  process.env.CORS_ORIGIN,      // your Vercel site
-  "http://localhost:5173"       // dev mode
+  "https://lunchbox-wlgs.vercel.app",
+  "http://localhost:5173",
 ];
 
 app.use(
@@ -69,13 +69,13 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log("❌ CORS BLOCKED:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
   })
 );
-
 // --- Routes ---
 app.use("/api/auth", authRoutes);
 app.use("/api/user", usersRoutes);

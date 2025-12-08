@@ -24,9 +24,19 @@ export const createRecipe = async (req, res) => {
     // Always use Render backend URL
     const baseUrl = process.env.PUBLIC_API_URL;
 
-    const imageUrl = req.file
-      ? `${baseUrl}/uploads/${req.file.filename}`
-      : `${baseUrl}/images/bowl.jpg`;
+    let imageUrl;
+
+if (req.file) {
+  // Uploaded image
+  imageUrl = `${process.env.PUBLIC_API_URL}/uploads/${req.file.filename}`;
+} else if (req.body.image && req.body.image.startsWith("http")) {
+  // A full URL was provided (keep it as is)
+  imageUrl = req.body.image;
+} else {
+  // Fallback image hosted on frontend
+  imageUrl = "https://lunchbox-wlgs.vercel.app/placeholder.png";
+}
+
 
     const parseList = (value, delimiter = ",") =>
       value ? value.split(delimiter).map(v => v.trim()).filter(Boolean) : [];

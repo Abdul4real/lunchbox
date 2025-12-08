@@ -4,8 +4,9 @@ import { Link, useParams } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
 import { useAuth } from "../../contexts/AuthContext";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const API_BASE = API.replace(/\/api\/?$/, "");
+const API = import.meta.env.VITE_API_URL;
+const API_BASE = API.replace("/api", "");
+
 
 export default function RecipeDetails() {
   const { id } = useParams();
@@ -16,14 +17,13 @@ export default function RecipeDetails() {
   if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
 
   // Build proper image URL
-  const imageUrl =
-    r.image?.startsWith("http")
-      ? r.image
-      : r.image?.startsWith("/uploads")
-      ? `${API_BASE}${r.image}`
-      : r.image
-      ? `${API_BASE}/uploads/${r.image}`
-      : "/placeholder.png";
+const displayImage =
+  image.startsWith("/images/")
+    ? image // load from frontend (Vercel)
+    : image.startsWith("http")
+    ? image // external URL
+    : `${API_BASE}/uploads/${image}`; // backend uploads
+
 
   // ---- OWNER CHECK ----
   const userId = user?._id || user?.id;
@@ -55,11 +55,10 @@ export default function RecipeDetails() {
       {/* Recipe Image */}
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
         <img
-          src={imageUrl}
-          alt={r.title}
-          className="w-full object-cover"
-          onError={(e) => (e.currentTarget.src = "/placeholder.png")}
-        />
+            src={displayImage}
+            onError={e => (e.currentTarget.src = "/images/Sushi.jpg")}
+          />
+
       </div>
 
 
