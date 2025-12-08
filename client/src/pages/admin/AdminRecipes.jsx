@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function AdminRecipes() {
   const [rows, setRows] = useState([]);
@@ -12,7 +12,7 @@ export default function AdminRecipes() {
   const fetchRecipes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/admin/recipes`);
+      const res = await axios.get(`${API_BASE}/admin/recipes`);
       const data = res.data;
       const list = Array.isArray(data)
         ? data
@@ -34,7 +34,7 @@ export default function AdminRecipes() {
   const updateStatus = async (id, status) => {
     try {
       const res = await axios.patch(
-        `${API_BASE}/api/admin/recipes/${id}/status`,
+        `${API_BASE}/admin/recipes/${id}/status`,
         { status }
       );
       const updated = res.data;

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function AdminReports() {
   const [rows, setRows] = useState([]);
@@ -11,7 +11,7 @@ export default function AdminReports() {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/admin/reports`);
+      const res = await axios.get(`${API_BASE}/admin/reports`);
 
       const data = res.data;
       const list = Array.isArray(data) ? data : data.data || [];
@@ -31,7 +31,7 @@ export default function AdminReports() {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.patch(`${API_BASE}/api/admin/reports/${id}/status`, {
+      await axios.patch(`${API_BASE}/admin/reports/${id}/status`, {
         status,
       });
       await fetchReports();

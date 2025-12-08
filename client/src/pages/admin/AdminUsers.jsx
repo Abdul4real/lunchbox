@@ -11,7 +11,7 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/admin/users`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         params: { q: "", page: 1, limit: 50 },
       });
 

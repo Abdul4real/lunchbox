@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 const categories = ["Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Other"];
 
 export default function AddRecipe() {
@@ -43,7 +43,7 @@ export default function AddRecipe() {
       formData.append("category", form.category);
       if (form.imageFile) formData.append("image", form.imageFile);
 
-      const res = await fetch(`${API}/api/recipes`, {
+      const res = await fetch(`${API}/recipes`, {
         method: "POST",
         body: formData,
         headers: { Authorization: `Bearer ${localStorage.getItem("lb_token")}` },

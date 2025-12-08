@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const Card = ({ title, count, to, emoji, loading }) => (
   <Link
@@ -36,7 +36,7 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
         // matches your backend: GET /api/admin/dashboard
-        const res = await axios.get(`${API_BASE}/api/admin/dashboard`);
+        const res = await axios.get(`${API_BASE}/admin/dashboard`);
         setStats({
           users: res.data.users ?? 0,
           recipes: res.data.recipes ?? 0,

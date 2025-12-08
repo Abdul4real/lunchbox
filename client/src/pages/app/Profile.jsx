@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { user, logout } = useAuth();   // ✅ removed setUser
+  const { user, logout } = useAuth();   //  removed setUser
   const nav = useNavigate();
 
   const [pw1, setPw1] = useState("");
@@ -41,7 +41,7 @@ export default function Profile() {
     }
 
     try {
-      const res = await fetch(`${API}/api/user/password`, {
+      const res = await fetch(`${API}/user/password`, {
         method: "PATCH",
         headers: authHeader,
         body: JSON.stringify({ password: pw1 }),
@@ -61,7 +61,7 @@ export default function Profile() {
     if (!confirm("Delete your account permanently?")) return;
 
     try {
-      const res = await fetch(`${API}/api/user`, {
+      const res = await fetch(`${API}/user`, {
         method: "DELETE",
         headers: authHeader,
       });

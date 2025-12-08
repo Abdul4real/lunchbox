@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function AdminLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -30,7 +30,7 @@ export default function AdminLogin() {
 
       // Call backend admin login API
       const res = await axios.post(
-        `${API_BASE}/api/admin/login`,
+        `${API_BASE}/admin/login`,
         payload,
         { headers: { "Content-Type": "application/json" } }
       );

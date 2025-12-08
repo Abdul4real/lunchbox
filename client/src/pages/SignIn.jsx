@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext"; // from your context
 // expects AuthContext to expose: loginUser({ token, user })
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL;
 
 export default function SignIn() {
   const nav = useNavigate();
@@ -21,7 +21,7 @@ export default function SignIn() {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
+      const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

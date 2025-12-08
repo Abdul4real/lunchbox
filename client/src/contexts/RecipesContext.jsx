@@ -16,7 +16,7 @@ export default function RecipesProvider({ children }) {
   useEffect(() => {
     async function fetchRecipes() {
       try {
-        const res = await fetch(`${API}/api/recipes`);
+        const res = await fetch(`${API}/recipes`);
         const data = await res.json();
         setRecipes(data.data || data);
       } catch (err) {
