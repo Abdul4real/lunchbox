@@ -4,10 +4,6 @@ import { Link, useParams } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
 import { useAuth } from "../../contexts/AuthContext";
 
-const API = import.meta.env.VITE_API_URL;
-const API_BASE = API.replace("/api", "");
-
-
 export default function RecipeDetails() {
   const { id } = useParams();
   const { recipes, addReview, toggleBookmark } = useRecipes();
@@ -16,14 +12,12 @@ export default function RecipeDetails() {
   const r = recipes.find((x) => x._id === id);
   if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
 
-  // Build proper image URL
-const displayImage =
-  image.startsWith("/images/")
-    ? image // load from frontend (Vercel)
-    : image.startsWith("http")
-    ? image // external URL
-    : `${API_BASE}/uploads/${image}`; // backend uploads
+  // Correctly use the normalized backend URL
+  const image =
+    r.image ||
+    "https://lunchbox-wlgs.vercel.app/images/bowl.jpg"; // safe fallback
 
+  const displayImage = image; // Already a valid absolute URL
 
   // ---- OWNER CHECK ----
   const userId = user?._id || user?.id;
@@ -44,7 +38,6 @@ const displayImage =
   const submitReview = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-
     addReview(r._id, { by: user?.name || "You", stars, text });
     setText("");
     setStars(5);
@@ -55,12 +48,15 @@ const displayImage =
       {/* Recipe Image */}
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
         <img
-            src={displayImage}
-            onError={e => (e.currentTarget.src = "/images/Sushi.jpg")}
-          />
-
+          src={displayImage}
+          alt={r.title}
+          className="w-full object-cover"
+          onError={(e) =>
+            (e.currentTarget.src =
+              "https://lunchbox-wlgs.vercel.app/images/bowl.jpg")
+          }
+        />
       </div>
-
 
       {/* Recipe Details */}
       <div>
@@ -91,17 +87,21 @@ const displayImage =
         {/* Ingredients */}
         <h3 className="mt-4 font-semibold">Ingredients</h3>
         <ul className="list-disc ml-5 text-sm">
-          {ingredients.length
-            ? ingredients.map((i, ix) => <li key={ix}>{i}</li>)
-            : <li>No ingredients listed.</li>}
+          {ingredients.length ? (
+            ingredients.map((i, ix) => <li key={ix}>{i}</li>)
+          ) : (
+            <li>No ingredients listed.</li>
+          )}
         </ul>
 
         {/* Steps */}
         <h3 className="mt-4 font-semibold">Steps</h3>
         <ol className="list-decimal ml-5 text-sm space-y-1">
-          {steps.length
-            ? steps.map((s, ix) => <li key={ix}>{s}</li>)
-            : <li>No steps listed.</li>}
+          {steps.length ? (
+            steps.map((s, ix) => <li key={ix}>{s}</li>)
+          ) : (
+            <li>No steps listed.</li>
+          )}
         </ol>
 
         {/* Add Review */}
@@ -118,12 +118,14 @@ const displayImage =
               </option>
             ))}
           </select>
+
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Write a comment"
             className="flex-1 rounded-lg border px-3 py-2"
           />
+
           <button className="px-3 py-2 rounded-lg bg-[var(--lb-yellow)] font-semibold">
             Submit
           </button>
@@ -131,14 +133,16 @@ const displayImage =
 
         {/* Existing Reviews */}
         <ul className="mt-3 space-y-2">
-          {reviews.length
-            ? reviews.map((rev, ix) => (
-                <li key={ix} className="rounded-lg border px-3 py-2">
-                  <b>{rev.by}</b> — {rev.stars}★
-                  <p className="text-sm">{rev.text}</p>
-                </li>
-              ))
-            : <p>No reviews yet.</p>}
+          {reviews.length ? (
+            reviews.map((rev, ix) => (
+              <li key={ix} className="rounded-lg border px-3 py-2">
+                <b>{rev.by}</b> — {rev.stars}★
+                <p className="text-sm">{rev.text}</p>
+              </li>
+            ))
+          ) : (
+            <p>No reviews yet.</p>
+          )}
         </ul>
       </div>
     </section>
