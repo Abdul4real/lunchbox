@@ -16,10 +16,17 @@ function validateId(id) {
 export const createRecipe = async (req, res) => {
   try {
     const { title, time, ingredients, steps, tags, category } = req.body;
-    if (!title) return res.status(400).json({ message: "Title is required" });
 
-    const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
-    const imageUrl = req.file ? `${baseUrl}/uploads/${req.file.filename}` : `${baseUrl}/images/bowl.jpg`;
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    // Always use Render backend URL
+    const baseUrl = process.env.PUBLIC_API_URL;
+
+    const imageUrl = req.file
+      ? `${baseUrl}/uploads/${req.file.filename}`
+      : `${baseUrl}/images/bowl.jpg`;
 
     const parseList = (value, delimiter = ",") =>
       value ? value.split(delimiter).map(v => v.trim()).filter(Boolean) : [];
@@ -41,6 +48,7 @@ export const createRecipe = async (req, res) => {
     res.status(err.statusCode || 500).json({ message: err.message || "Failed to create recipe" });
   }
 };
+
 
 // --- List recipes with filtering & pagination ---
 export const listRecipes = async (req, res) => {
