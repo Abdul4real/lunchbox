@@ -11,20 +11,20 @@ import Report from "../models/Report.js";
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log("Login body:", req.body);
+    //console.log("Login body:", req.body);
 
     const admin = await User.findOne({ email, role: "admin" }).select(
       "+password"
     );
 
-    console.log(
-      "Found admin:",
-      admin && {
-        email: admin.email,
-        role: admin.role,
-        hasPassword: !!admin.password,
-      }
-    );
+    // console.log(
+    //   "Found admin:",
+    //   admin && {
+    //     email: admin.email,
+    //     role: admin.role,
+    //     hasPassword: !!admin.password,
+    //   }
+    // );
 
     if (!admin || !admin.password) {
       console.log("No admin found or no password");

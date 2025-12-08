@@ -2,20 +2,22 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL;
 
 export default function AdminUsers() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Load users from backend
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+
+      const res = await axios.get(`${API}/admin/users`, {
         params: { q: "", page: 1, limit: 50 },
       });
 
-      // { data, total, page, limit, totalPages }
+      // res.data = { data, total, page, limit, totalPages }
       setRows(res.data.data || []);
     } catch (err) {
       console.error("Failed to load users:", err);
@@ -29,35 +31,35 @@ export default function AdminUsers() {
     fetchUsers();
   }, []);
 
+  // Suspend / Unsuspend
   const toggleSuspend = async (id) => {
     try {
-      const res = await axios.patch(
-        `${API_BASE}/admin/users/${id}/suspend`
-      );
+      const res = await axios.patch(`${API}/admin/users/${id}/suspend`);
       const updated = res.data.user;
 
-      // update local state so row stays visible & status changes
-      setRows((rs) =>
-        rs.map((u) =>
+      setRows((prev) =>
+        prev.map((u) =>
           String(u._id) === String(updated.id)
             ? { ...u, isSuspended: updated.isSuspended }
             : u
         )
       );
     } catch (err) {
-      console.error("Failed to update status:", err);
+      console.error("Failed to update user:", err);
       alert("Failed to update user status");
     }
   };
 
+  // Delete User
   const remove = async (id) => {
     if (!window.confirm("Are you sure you want to remove this user?")) return;
+
     try {
-      await axios.delete(`${API_BASE}/admin/users/${id}`);
-      setRows((rs) => rs.filter((u) => String(u._id) !== String(id)));
+      await axios.delete(`${API}/admin/users/${id}`);
+      setRows((prev) => prev.filter((u) => String(u._id) !== String(id)));
     } catch (err) {
-      console.error("Failed to remove user:", err);
-      alert("Failed to remove user");
+      console.error("Failed to delete user:", err);
+      alert("Failed to delete user");
     }
   };
 
@@ -76,17 +78,18 @@ export default function AdminUsers() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 dark:bg-neutral-800">
             <tr>
-              <th className="p-3 text-left">ID</th>
+              <th className="p-3 text-left">#</th>
               <th className="p-3 text-left">Name</th>
               <th className="p-3 text-left">Email</th>
               <th className="p-3 text-left">Status</th>
               <th className="p-3"></th>
             </tr>
           </thead>
+
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="p-3 text-sm text-gray-500">
+                <td colSpan={5} className="p-3 text-gray-500">
                   Loading users…
                 </td>
               </tr>
@@ -94,12 +97,11 @@ export default function AdminUsers() {
 
             {!loading &&
               rows.map((u, index) => {
-                const isSuspended = !!u.isSuspended;
-                const status = isSuspended ? "suspended" : "active";
+                const suspended = u.isSuspended;
 
                 return (
                   <tr
-                    key={u._id || index}
+                    key={u._id}
                     className="border-t border-gray-100 dark:border-neutral-800"
                   >
                     <td className="p-3">{index + 1}</td>
@@ -108,12 +110,12 @@ export default function AdminUsers() {
                     <td className="p-3">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                          suspended
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
                         }`}
                       >
-                        {status}
+                        {suspended ? "Suspended" : "Active"}
                       </span>
                     </td>
                     <td className="p-3 flex gap-2">
@@ -121,14 +123,16 @@ export default function AdminUsers() {
                         onClick={() => toggleSuspend(u._id)}
                         className="px-2 py-1 rounded-lg border"
                       >
-                        {status === "active" ? "Suspend" : "Unsuspend"}
+                        {suspended ? "Unsuspend" : "Suspend"}
                       </button>
+
                       <button
                         onClick={() => resetPw(u._id)}
                         className="px-2 py-1 rounded-lg border"
                       >
                         Reset PW
                       </button>
+
                       <button
                         onClick={() => remove(u._id)}
                         className="px-2 py-1 rounded-lg border"
@@ -142,10 +146,7 @@ export default function AdminUsers() {
 
             {!loading && rows.length === 0 && (
               <tr>
-                <td
-                  colSpan={5}
-                  className="p-4 text-center text-gray-500 text-sm"
-                >
+                <td colSpan={5} className="p-4 text-center text-gray-500">
                   No users found.
                 </td>
               </tr>

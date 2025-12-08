@@ -2,22 +2,36 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL;
+const API_BASE = API.replace(/\/api\/?$/, "");
 
 export default function AdminRecipes() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load all recipes (any status) for admin
+  // ---------------------------------------
+  // IMAGE FIXER: handles ALL valid image types
+  // ---------------------------------------
+  const fixImageUrl = (img) => {
+    if (!img) return "/placeholder.png";
+
+    if (img.startsWith("http")) return img;           // Full external URL
+    if (img.startsWith("/images/")) return img;       // Frontend static images
+    if (img.startsWith("/uploads/")) return `${API_BASE}${img}`; // Backend uploads
+    if (img.includes("uploads")) return `${API_BASE}/${img}`; // Fallback for weird paths
+
+    return "/placeholder.png";
+  };
+
+  // Load all recipes
   const fetchRecipes = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/recipes`);
-      const data = res.data;
-      const list = Array.isArray(data)
-        ? data
-        : data.recipes || data.data || [];
-      setRows(list);
+      const res = await axios.get(`${API}/admin/recipes`);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data.recipes || res.data.data || [];
+      setRows(data);
     } catch (err) {
       console.error("Failed to load recipes:", err);
       alert("Failed to load recipes");
@@ -33,15 +47,14 @@ export default function AdminRecipes() {
   // Approve / Reject / Revoke
   const updateStatus = async (id, status) => {
     try {
-      const res = await axios.patch(
-        `${API_BASE}/admin/recipes/${id}/status`,
-        { status }
-      );
+      const res = await axios.patch(`${API}/admin/recipes/${id}/status`, {
+        status,
+      });
+
       const updated = res.data;
 
-      // IMPORTANT: update local state instead of filtering out
-      setRows((rs) =>
-        rs.map((r) =>
+      setRows((prev) =>
+        prev.map((r) =>
           String(r._id) === String(updated._id) ? { ...r, status } : r
         )
       );
@@ -59,7 +72,7 @@ export default function AdminRecipes() {
       case "revoked":
         return "bg-red-100 text-red-700";
       default:
-        return "bg-amber-100 text-amber-700"; // pending / unknown
+        return "bg-amber-100 text-amber-700"; // pending
     }
   };
 
@@ -78,23 +91,20 @@ export default function AdminRecipes() {
         )}
 
         {!loading &&
-          rows.map((r, index) => {
-            const title = r.title || r.name || "Untitled";
+          rows.map((r, i) => {
+            const title = r.title || "Untitled";
             const author =
               r.author?.name ||
               r.authorName ||
               r.user?.name ||
               r.createdBy ||
               "Unknown";
-            const status = r.status || "pending";
-            const image =
-              r.image ||
-              r.cover ||
-              "https://via.placeholder.com/400x300?text=Recipe";
+
+            const image = fixImageUrl(r.image);
 
             return (
               <article
-                key={r._id || index}
+                key={r._id || i}
                 className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden bg-white dark:bg-neutral-900"
               >
                 <div className="aspect-[4/3] bg-gray-100 dark:bg-neutral-800">
@@ -102,24 +112,28 @@ export default function AdminRecipes() {
                     src={image}
                     alt={title}
                     className="w-full h-full object-cover"
+                    onError={(e) => (e.currentTarget.src = "/placeholder.png")}
                   />
                 </div>
+
                 <div className="p-4">
                   <h3 className="font-semibold">{title}</h3>
                   <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">
-                    ⏱ {r.time || r.cookTime || "N/A"} · by {author}
+                    ⏱ {r.time || "N/A"} · by {author}
                   </p>
 
+                  {/* Status Badge */}
                   <div className="mt-2 flex items-center gap-2">
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${statusClasses(
-                        status
+                        r.status
                       )}`}
                     >
-                      {status}
+                      {r.status || "pending"}
                     </span>
                   </div>
 
+                  {/* Action Buttons */}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => updateStatus(r._id, "approved")}
