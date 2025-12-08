@@ -1,6 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 export default function Footer() {
+  const navigate = useNavigate();
   return (
     <footer className="mt-14 pb-12">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-gray-200 dark:border-neutral-800 pt-8">
@@ -23,6 +26,14 @@ export default function Footer() {
               <a href="#" className="hover:underline">
                 Blog
               </a>
+            </li>
+            <li>
+              <button
+                  onClick={() => navigate("/admin/login")}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
+                >
+            Admin Portal
+          </button>
             </li>
           </ul>
         </div>

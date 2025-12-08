@@ -1,7 +1,11 @@
+// client/src/pages/app/RecipeDetails.jsx
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useRecipes } from "../../contexts/RecipesContext";
 import { useAuth } from "../../contexts/AuthContext";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = API.replace(/\/api\/?$/, "");
 
 export default function RecipeDetails() {
   const { id } = useParams();
@@ -11,20 +15,24 @@ export default function RecipeDetails() {
   const r = recipes.find((x) => x._id === id);
   if (!r) return <p className="text-center mt-10">Recipe not found.</p>;
 
-  // ---- OWNER CHECK ----
-  // Try to get a user id regardless of property name
-  const userId = user?._id || user?.id;
+  // Build proper image URL
+  const imageUrl =
+    r.image?.startsWith("http")
+      ? r.image
+      : r.image?.startsWith("/uploads")
+      ? `${API_BASE}${r.image}`
+      : r.image
+      ? `${API_BASE}/uploads/${r.image}`
+      : "/placeholder.png";
 
-  // Try to get author id whether it's a string or object
+  // ---- OWNER CHECK ----
+  const userId = user?._id || user?.id;
   let authorId = r.author;
   if (authorId && typeof authorId === "object") {
     authorId = authorId._id || authorId.id;
   }
+  const isOwner = userId && authorId && String(userId) === String(authorId);
 
-  const isOwner =
-    userId && authorId && String(userId) === String(authorId);
-
-  // Safe defaults
   const ingredients = r.ingredients || [];
   const steps = r.steps || [];
   const reviews = r.reviews || [];
@@ -47,12 +55,13 @@ export default function RecipeDetails() {
       {/* Recipe Image */}
       <div className="rounded-2xl border border-gray-200 dark:border-neutral-800 overflow-hidden">
         <img
-          src={r.image}
+          src={imageUrl}
           alt={r.title}
           className="w-full object-cover"
-          onError={(e) => (e.target.src = "/placeholder.png")}
+          onError={(e) => (e.currentTarget.src = "/placeholder.png")}
         />
       </div>
+
 
       {/* Recipe Details */}
       <div>
