@@ -89,7 +89,7 @@ export default function Header() {
             onClick={() => navigate("/signin")}
             className="p-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
           >
-            Sign In
+            Login
           </button>
           <button
             onClick={() => navigate("/register")}
